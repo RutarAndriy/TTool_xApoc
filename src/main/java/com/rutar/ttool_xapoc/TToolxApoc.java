@@ -6,6 +6,7 @@ import java.net.*;
 import java.nio.*;
 import java.util.*;
 import javax.swing.*;
+import java.awt.font.*;
 import java.nio.file.*;
 import javax.imageio.*;
 import java.util.jar.*;
@@ -19,10 +20,9 @@ import javax.swing.filechooser.*;
 import com.rutar.ua_translator.*;
 import com.formdev.flatlaf.themes.*;
 
-import static java.lang.System.*;
+import static java.io.File.*;
 import static javax.swing.JOptionPane.*;
 import static javax.swing.JFileChooser.*;
-import static java.awt.image.BufferedImage.*;
 
 // ............................................................................
 /// Головний клас програми
@@ -37,8 +37,6 @@ private File outputFile;                                       // вихідни
 private final JFileChooser fileOpen;           // відкривання/збереження файлів
 private final JFileChooser fntCompile;                  // компілювання шрифтів
 private final JFileChooser fntDecompile;              // декомпілювання шрифтів
-// private final JFileChooser rawCompile;                 // компілювання даних
-// private final JFileChooser rawDecompile;             // декомпілювання даних
 
 private String appDescription;                                 // опис програми
 private DefaultTableModel tableModel;              // стандартна модель таблиці
@@ -47,8 +45,20 @@ private boolean dataWasChanged;                // якщо true - дані бу�
 
 private File tmpFile;                                       // допоміжна змінна
 private byte[] allBytes;                                   // всі зчитані байти
+private byte[] allAdditional;
+private final int minStrLen = 2;
 private ByteBuffer buffer;                        // буфер для зчитування даних
 private SearchDialog searchDialog;         // діалогове вікно пошуку інформації
+
+private final Font strikeFont;
+
+private final ArrayList<Integer> ufopediaIndexes      = new ArrayList<>();
+private final ArrayList<UFOPediaBlock> ufopediaBlocks = new ArrayList<>();
+
+public static final ArrayList<TextBlock> textBlocks = new ArrayList<>();
+public static final ArrayList<Integer> editedList = new ArrayList<>();
+
+private boolean reactOnChange = true;
 
 // ............................................................................
 
@@ -69,12 +79,19 @@ initComponents();
 initAppIcons();
 
 fileOpen     = Utils.getFileChooser(FILES_ONLY, Map.of
-                                   ("bmp",  "Файли зображень",
-                                    "test", "Особливий тип файлу"));
+                                   ("mt",  "xApoc уфопедія",
+                                    "exe", "xApoc виконувані файли"));
+
 fntCompile   = Utils.getFileChooser(DIRECTORIES_ONLY,
-                                    "fnt", "Особливі файли шрифтів");
+                                    "dat", "xApoc файли шрифтів");
 fntDecompile = Utils.getFileChooser(FILES_ONLY,
-                                    "fnt", "Особливі файли шрифтів");
+                                    "dat", "xApoc файли шрифтів");
+
+// Ініціалізація закресленого шрифта
+Map<TextAttribute, Object> attr = new HashMap<>(mni_about.getFont()
+                                                         .getAttributes());
+attr.put(TextAttribute.STRIKETHROUGH, TextAttribute.STRIKETHROUGH_ON);
+strikeFont = mni_about.getFont().deriveFont(attr);
 
 }
 
@@ -135,57 +152,178 @@ if (result != JFileChooser.APPROVE_OPTION) { return; }
 String[] split = fileOpen.getSelectedFile().getName().split("\\.");
 fileExt = split[split.length - 1];
 
-switch (fileExt) { case "bmp" -> openBmpFile();
-                   default    -> openTestFile(); }
+switch (fileExt.toLowerCase()) { case "mt"  -> openMtFile();
+                                 case "exe" -> openExeFile(); }
 
 updateAppTitle();
 
 }
 
 // ============================================================================
-/// Відкривання *.bmp файлів
+/// Відкривання *.mt файлів
 
-private void openBmpFile() {
+private void openMtFile() {
 
-prepareNewTable();
+prepareNewTable(true);
 
-// ...
+inputFile = fileOpen.getSelectedFile();
+ArrayList<String> row = new ArrayList<>();
+File mtDesc = new File(inputFile.getAbsolutePath() + "I");
 
-finalizeNewTable();
+// Очищення попередніх даних
+ufopediaBlocks.clear();
+ufopediaIndexes.clear();
+dataWasChanged = false;
 
+try { 
+
+// Зчитування файлів UFO-педії
+allBytes = Files.readAllBytes(inputFile.toPath());
+allAdditional = Files.readAllBytes(mtDesc.toPath());
+
+buffer = ByteBuffer.wrap(allAdditional);
+buffer.order(ByteOrder.LITTLE_ENDIAN);
+
+// Отримання індексів значущих блоків
+while (buffer.remaining() >= 4) { ufopediaIndexes.add(buffer.getInt()); }
+
+// Обробка блоків FO-педії в циклі
+for (int z = 0; z < ufopediaIndexes.size() - 1; z++) {
+    
+    // Отримання блоку даних
+    int from = ufopediaIndexes.get(z);
+    int to   = ufopediaIndexes.get(z + 1);
+    var block = new UFOPediaBlock(Arrays.copyOfRange(allBytes, from, to));
+    
+    // Парсинг блоку даних
+    row.clear();
+    row.add(String.valueOf(z + 1));
+    row.add(block.getTitle());
+    row.add(block.getDescription());
+    
+    // Додавання даних у таблицю
+    tableModel.addRow(row.toArray(String[]::new));
+    ufopediaBlocks.add(block);
+}
+
+finalizeNewTable(true);
+
+}
+
+// ............................................................................
+
+catch (IOException e)
+    { showMessageDialog(this, "При відкриванні файлу відбулася критична " +
+                              "помилка", "Помилка", ERROR_MESSAGE); }
 }
 
 // ============================================================================
-/// Відкривання *.test файлів
+/// Відкривання *.exe файлів
 
-private void openTestFile() {
+private void openExeFile() {
 
-prepareNewTable();
+String tmp;
+Range range;
+TextBlock block;
+int pos = -1;
+ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
 // ............................................................................
+
+prepareNewTable(false);
+
+inputFile = fileOpen.getSelectedFile();
+ArrayList<String> row = new ArrayList<>();
+
+textBlocks.clear();
+editedList.clear();
+dataWasChanged = false;
+
+// ............................................................................
+/// Зчитування *.exe файлів, як набору байтових даних
 
 try {
 
-ArrayList<String> newRow = new ArrayList<>();
+// Зчитування всіх байт
+allBytes = Files.readAllBytes(inputFile.toPath());
 
-for (int z = 1; z <= 9; z++) {
+// Ручне задавання діапазонів, у межах яких є дані для обробки
+switch (inputFile.getName()) {
     
-    newRow.clear();
-    newRow.add(String.valueOf(z));
-    newRow.add("Key_"   + z);
-    newRow.add("Value_" + z);
-    tableModel.addRow(newRow.toArray(String[]::new));
+    case "UFO2P.EXE" -> { range = 
+        new Range("1346004..1353019,1353324..1360206,1360742..1368755,"
+                + "1368895..1376455,1376755..1392187,1392289..1396269"); }
+
+    case "UFO2P4.EXE" -> { range = 
+        new Range("1349588..1356603,1356908..1363790,1364326..1380039,"
+                + "1380339..1394373,1394509..1395771,1395873..1399853"); }
+
+    case "TACP.EXE" -> { range = 
+        new Range("1254172..1254400,3005388..3010255,"
+                + "3010307..3015444,3015521..3021497,3023446..3086216"); }
+
+    case "TACP4.EXE" -> { range = 
+        new Range("1245468..1245696,2996684..3001551,"
+                + "3001603..3002764,3002912..3012793,3014742..3077512"); }
+
+    default -> { range = new Range("-"); }
 
 }
+
+// Вимкнення фільтрування рядків
+if (!mni_filterRows.getFont().equals(strikeFont)) { range = new Range("-"); }
+
+// Пошук послідовностей, які потенційно можуть бути текстом для перекладу
+for (int z = 0; z < allBytes.length; z++) {
+
+    // Виявлено недопустимий символ
+    if (!range.contains(z)) { pos = -1;
+                              baos.reset();
+                              continue; }
+    
+    // Виявлено потенційний кінець текстового рядка
+    if (allBytes[z] == 0) {
+        byte[] bytes = baos.toByteArray();
+        if (bytes.length < minStrLen) { pos = -1; baos.reset(); continue; }
+        block = new TextBlock(pos, bytes);
+        textBlocks.add(block);
+        baos.reset();
+        pos = -1;
+    }
+    
+    // Виявлено допустимий символ
+    else if (isValidByte(allBytes[z])) { if (pos == -1) { pos = z; }
+                                         baos.write(allBytes[z]); }
+    
+    // Винятковий випадок
+    else { baos.reset();
+           pos = -1; }
+    
 }
 
-catch (Exception ex) { showMessageDialog(this, "Помилка читання файлу: " +
-                                                ex.getMessage()); }
+// ............................................................................
+// Додавання всіх знайдених текстових блоків до таблиці
+
+for (int z = 0; z < textBlocks.size(); z++) {
+    
+    block = textBlocks.get(z);
+    tmp = TextBlock.decodeText(block.getRawData());
+    row.clear();
+    row.add(String.valueOf(z + 1));
+    row.add(tmp.length() + "/" + block.getRawData().length);
+    row.add(tmp);
+    tableModel.addRow(row.toArray(String[]::new));
+}
+
+finalizeNewTable(false);
+
+}
 
 // ............................................................................
 
-finalizeNewTable();
-
+catch (IOException ex)
+    { showMessageDialog(this, "При відкриванні файлу відбулася критична "
+                            + "помилка", "Помилка", ERROR_MESSAGE); }
 }
 
 // ============================================================================
@@ -193,37 +331,173 @@ finalizeNewTable();
 
 private void showSaveDialog() {
 
+// Перевірка, чи всі введені строки є допустимими (лише для *.exe файлів)
+if (fileExt.toLowerCase().equals("exe")) {
+
+    for (int z = 0; z < editedList.size(); z++) {
+
+        int id = editedList.get(z);
+        
+        String editedText = (String) tbl_main.getValueAt(id, 2);
+        
+        int oldLength = textBlocks.get(id).getRawData().length;
+        int newLength = TextBlock.encodeText(editedText).length;
+        
+        if (newLength > oldLength) { 
+            //selectData(2, id);
+            String msg = "Довжина рядка №" + (id + 1) + " перевищує " +
+                         "довжину оригінального рядка "
+                       + "на " + (newLength - oldLength) + " символ/ів";
+            showMessageDialog(this, msg, "Помилка", 0);
+            return;
+        } } }
+
+// ............................................................................
+
 fileOpen.setSelectedFile(inputFile);
 int result = fileOpen.showSaveDialog(this);
 if (result != JFileChooser.APPROVE_OPTION) { return; }
 
-switch (fileExt) { case "bmp" -> saveBmpFile();
-                   default    -> saveTestFile(); }
+switch (fileExt.toLowerCase()) { case "mt"  -> saveMtFile();
+                                 case "exe" -> saveExeFile(); }
 
-}
-
-// ============================================================================
-/// Збереження *.bmp файлів
-
-private void saveBmpFile() {
-
-// Utils.replaceUnusedChars("...");
-
-dataWasChanged = false;
 updateAppTitle();
 
 }
 
 // ============================================================================
-/// Збереження *.test файлів
+/// Збереження *.mt файлів
 
-private void saveTestFile() {
+private void saveMtFile() {
 
 // Utils.replaceUnusedChars("...");
 
+try {
+
+outputFile = fileOpen.getSelectedFile();
+File ufopediaDesc = new File(inputFile.getAbsolutePath() + "I");
+UFOPediaBlock block;
+String tmp;
+byte[] data;
+int pos = 0;
+
+// Ініціалізація буферу для запису даних
+buffer = ByteBuffer.allocate((ufopediaBlocks.size() + 1) * 4);
+buffer.order(ByteOrder.LITTLE_ENDIAN);
+buffer.putInt(pos);
+
+// Запис файлу-уфопедії та файлу-дескриптора
+try (FileOutputStream pediaF = new FileOutputStream(outputFile, false);
+     FileOutputStream pediaD = new FileOutputStream(ufopediaDesc, false)) {
+
+// Обробка текстових блоків у циклі
+for (int z = 0; z < ufopediaBlocks.size(); z++) {
+    
+    block = ufopediaBlocks.get(z);
+    tmp = (String) tbl_main.getValueAt(z, 1);
+    block.setTitle(tmp);
+    tmp = (String) tbl_main.getValueAt(z, 2);
+    block.setDescription(tmp);
+    
+    data = block.getRawData();
+    pos += data.length;
+    
+    pediaF.write(data);
+    buffer.putInt(pos);
+    
+}
+
+// Запис даних у файл-дескриптор
+pediaD.write(buffer.array());
+
+}
+
+// ............................................................................
+
+dataWasChanged = false;
+ufopediaIndexes.clear();
+ufopediaBlocks.clear();
+updateAppTitle();
+
+showMessageDialog(this, "Файл " + outputFile.getName() + " успішно збережено",
+                        "Повідомлення", INFORMATION_MESSAGE);
+
+}
+
+// ............................................................................
+
+catch (HeadlessException | IOException _)
+    { showMessageDialog(this, "При збереженні файлу відбулася критична "
+                            + "помилка", "Помилка", ERROR_MESSAGE); }
+}
+
+// ============================================================================
+/// Збереження *.exe файлів
+
+private void saveExeFile() {
+
+// Utils.replaceUnusedChars("...");
+
+// Обробка всіх текстових блоків
+for (Integer edited : editedList) {
+
+    TextBlock block = textBlocks.get(edited);
+    int blockSize = block.getRawData().length;
+    String newText = (String) tbl_main.getValueAt(edited, 2);
+    byte[] bytes = new byte[blockSize];
+    byte[] encoded = TextBlock.encodeText(newText);
+    
+    // Якщо довжини старого і нового текстів співпадають - все ок
+    if (encoded.length == bytes.length) { bytes = encoded; }
+    
+    // Якщо довжини не співпадають - заповнюємо вільне місце пробілами
+    else {
+        
+        for (int z = 0; z < bytes.length; z++) {
+            
+            if (z < encoded.length) { bytes[z] = encoded[z]; }
+            else                    { bytes[z] = 0x20; }
+            
+        }
+        
+        // Оновлення даних у таблиці
+        reactOnChange = false;
+        tbl_main.setValueAt(bytes.length + "/" + bytes.length, edited, 1);
+        tbl_main.setValueAt(TextBlock.decodeText(bytes), edited, 2);
+        reactOnChange = true;
+        
+        // Оновлення дних текстового блоку
+        textBlocks.set(edited, new TextBlock(block.getPosition(), bytes));
+        
+    }
+    
+    // Заміна оригінальних байт на оброблені
+    System.arraycopy(bytes, 0, allBytes, block.getPosition(), bytes.length);
+    
+}
+
+// Отримання назви вихідного файлу
+outputFile = fileOpen.getSelectedFile();
+
+// Запис результату в файл
+try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+    
+fos.write(allBytes);
+
+editedList.clear();
+tbl_main.repaint();
 dataWasChanged = false;
 updateAppTitle();
 
+showMessageDialog(this, "Файл " + outputFile.getName() + " успішно збережено",
+                        "Повідомлення", INFORMATION_MESSAGE);
+}
+
+// ............................................................................
+
+catch (Exception e)
+    { showMessageDialog(this, "При збереженні файлу відбулася критична "
+                            + "помилка", "Помилка", ERROR_MESSAGE); }
 }
 
 // ============================================================================
@@ -311,44 +585,72 @@ if (result != JFileChooser.APPROVE_OPTION) { return; }
 
 inputFile = fntDecompile.getSelectedFile();
 
-try { allBytes = Files.readAllBytes(inputFile.toPath()); }
+String dirPath;                         // шлях до папки із результатом обробки
+int w, h, d, color;                                         // допоміжні змінні
+BufferedImage image;                                   // зображення для запису
 
-catch (IOException e) { out.println("Помилка розпаковування шрифту: "
-                                   + e.getMessage());
-                        return; }
-
-// ............................................................................
-
-byte[] data;
-buffer = ByteBuffer.wrap(allBytes);
-buffer.order(ByteOrder.LITTLE_ENDIAN);
-
-// ...
-if (debug) { out.println("..."); }
-
-int color;
-int width = 25;
-int height = 25;
-File imgFile = new File(HOME_DIR.getPath() + "/imgTest.bmp");
-BufferedImage image = new BufferedImage(width, height, TYPE_3BYTE_BGR);
-
-for (int r = 0; r < height; r++) {
-for (int c = 0; c < width; c++) {
-    color = 0x0000FF;
-    image.setRGB(c, r, color);
-}
-}
-
-try { ImageIO.write(image, "bmp", imgFile);
-      if (debug) { out.println("File imgTest.bmp was written"); } }
-
-catch (IOException e)
-    { if (debug) { err.println("File imgTest.bmp error"); } }
+// Ініціалізація допоміжних змінних, які залежать від назви файлу шрифту
+switch (inputFile.getName().split("\\.")[0]) {
+    case "BIGFONT"  -> { w = 14; h = 24; d = 24; }
+    case "SMALFONT" -> { w = 14; h = 15; d = 30; }
+    case "SMALLSET" -> { w = 8;  h = 12; d = -1; }
+    default         -> { showMessageDialog(this, "Неможливо розпакувати даний "
+                                               + "шрифт!"); return; } }
 
 // ............................................................................
 
-showMessageDialog(this, "Шрифт успішно розібрано!");
+try {
 
+// Зчитування файлів шрифта та дескиптора, якщо він існує 
+allBytes = Files.readAllBytes(inputFile.toPath());
+if (d != -1) { File desc = new File(inputFile.getAbsolutePath()
+                                             .replace(".DAT", ".SPC"));
+               allAdditional = Files.readAllBytes(desc.toPath()); }
+
+// Створення папки для запису результатів розпакування
+dirPath  = inputFile.getParent() + separator;
+dirPath += inputFile.getName().replace(".DAT", separator);
+new File(dirPath).mkdir();
+
+// Ініціалізація допоміжної змінної та кількості символів у шрифті
+String proc = d == -1 ? "" : "_%d";
+int charsCount = allBytes.length / w / h;
+
+// ............................................................................
+// Обробка усіх символів у циклі
+
+for (int z = 0; z < charsCount; z++) {
+    
+    int len = -1;
+    if (d != -1) { len = allAdditional[z * d + d + d/2]; }
+    image = new BufferedImage(w, h, BufferedImage.TYPE_3BYTE_BGR);
+    
+    for (int r = 0; r < h; r++) {
+    for (int c = 0; c < w; c++) {
+
+        int index = (z * w * h) + r * w + c;
+        color = allBytes[index] == 0 ? 0x0 : 0xFFFFFF;
+        image.setRGB(c, r, color);
+        
+    }
+    }
+    
+    // Запис результату в файл
+    String imageName = String.format("%03d_%02X" + proc, z + 1, z + 33, len);
+    File output = new File(dirPath + imageName + ".bmp");
+    ImageIO.write(image, "bmp", output);
+    
+}
+
+showMessageDialog(this, "Шрифт успішно розпаковано!");
+
+}
+
+// ............................................................................
+
+catch (HeadlessException | IOException _)
+    { showMessageDialog(this, "При розпакуванні шрифта відбулася критична "
+                            + "помилка", "Помилка", ERROR_MESSAGE); }
 }
 
 // ============================================================================
@@ -364,26 +666,91 @@ if (result != JFileChooser.APPROVE_OPTION) { return; }
 
 inputFile = fntCompile.getSelectedFile();
 
-// ...
+int w, h, d, color;                                         // допоміжні змінні
+BufferedImage image;                                   // зображення для запису
+String dirPath = inputFile.getAbsolutePath();        // шлях до вихідних файлів
 
-showMessageDialog(this, "Шрифт успішно зібрано!");
+outputFile = new File(dirPath + ".DAT");
+
+// Ініціалізація допоміжної змінної, яка залежать від назви файлу шрифту
+switch (inputFile.getName()) {
+   case "BIGFONT"  -> { d = 24; }
+   case "SMALFONT" -> { d = 30; }
+   case "SMALLSET" -> { d = -1; }
+   default         -> { showMessageDialog(this, "Неможливо запакувати даний "
+                                              + "шрифт!"); return; } }
+
+// Файл опису шрифта
+File fontDesc = new File(outputFile.getAbsolutePath().replace(".DAT", ".SPC"));
+
+// Якщо файл опису відсутній - відображення повідомлення про помилку
+if (d != -1 && !fontDesc.exists())
+    { showMessageDialog(this, "Не знайдено файл опису \n" +
+                              "шрифта: " + fontDesc.getName(), "Помилка", 0);
+      return; }
+
+// ............................................................................
+// Збирання окремих символів у єдиний файл шрифту
+
+try (FileOutputStream fos = new FileOutputStream(outputFile);
+     BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+
+// Масив зображень окремих символів
+File[] allFiles = inputFile.listFiles();
+
+// Зчитування оригінальних описів шрифтів
+if (d != -1) { allAdditional = Files.readAllBytes(fontDesc.toPath()); }
+
+// Обробка символів у циклі
+for (int z = 0; z < allFiles.length; z++) {
+
+    // Отримання назви файлу для обробки
+    String imageName = String.format("%03d_%02X", z + 1, z + 33);
+    for (File file : allFiles) {
+        if (file.getName().startsWith(imageName)) { imageName = file.getName();
+                                                    break; } }
+    
+    // Отримання ширини символу
+    byte len = -1;
+    if (d != -1) { int from = imageName.lastIndexOf("_") + 1;
+                   int to = imageName.lastIndexOf(".");
+                   len = Byte.parseByte(imageName.substring(from, to)); }
+    
+    // Зчитування даних зображення
+    image = ImageIO.read(new File(dirPath + separator + imageName));
+    byte[] imageData = ((DataBufferByte)(image.getRaster().getDataBuffer()))
+                                                          .getData();
+    byte[] writable = new byte[imageData.length / 3];
+    
+    // Обробка та запис даних
+    for (int pixel = 0; pixel < writable.length; pixel++)
+        { writable[pixel] = (byte) (imageData[pixel * 3] == 0 ? 0x0 : 0x1); }
+    bos.write(writable);
+    
+    // Обробка даних опису шрифта
+    if (d != -1) { for (int q = 0; q < d/2; q++)
+                       { allAdditional[z * d + d + d/2 + q] = len; } }
+}
+
+// Запис даних опису шрифта у файл
+if (d != -1) { try (var fosDesc = new FileOutputStream(fontDesc))
+                   { fosDesc.write(allAdditional); } }
+
+showMessageDialog(this, "Шрифт успішно запаковано!");
 
 }
 
-// ============================================================================
-/// Вибір даних для розпакування
+// ............................................................................
 
-private void showDecompileRawDialog() {}
-
-// ============================================================================
-/// Вибір розпакованих даних для пакування
-
-private void showCompileRawDialog() {}
+catch (Exception _)
+    { showMessageDialog(this, "При пакуванні шрифта відбулася критична "
+                            + "помилка", "Помилка", ERROR_MESSAGE); }
+}
 
 // ============================================================================
 /// Попередня ініціалізація нової таблиці
 
-private void prepareNewTable() {
+private void prepareNewTable (boolean isUFOPedia) {
 
 dataWasChanged = false;
 inputFile = fileOpen.getSelectedFile();
@@ -391,36 +758,78 @@ sp_table.getVerticalScrollBar().setValue(0);
 
 tableModel = new DefaultTableModel() {
     @Override
-    public boolean isCellEditable (int row, int column) { return column >= 2; }
+    public boolean isCellEditable (int row, int column)
+        { if (fileExt.toLowerCase().equals("exe")) { return column >= 2; }
+          else                                     { return column >= 1; } }
 };
 
 tbl_main.setModel(tableModel);
 
-tableModel.addColumn("№");
-tableModel.addColumn("Ключ");
-tableModel.addColumn("Значення");
+if (isUFOPedia)
+     { tableModel.addColumn("№");
+       tableModel.addColumn("Заголовок");
+       tableModel.addColumn("Опис"); }
+else { tableModel.addColumn("№");
+       tableModel.addColumn("Розмір");
+       tableModel.addColumn("Текст для перекладу"); }
 
 }
 
 // ============================================================================
 /// Завершальна ініціалізація нової таблиці
 
-private void finalizeNewTable() {
+private void finalizeNewTable (boolean isUFOPedia) {
 
 TableColumn tColumn;
+int prefW, totalW = 0;
+CellRender cellRender = new CellRender();
+cellRender.setHorizontalAlignment(SwingConstants.CENTER);
 
-CellRender cellRenderer = new CellRender();
-cellRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+// ............................................................................
+// Відкрито *.mt файл
+
+if (isUFOPedia) {
 
 tColumn = tbl_main.getColumnModel().getColumn(0);
-tColumn.setCellRenderer(cellRenderer);
-tColumn.setPreferredWidth(45);
+tColumn.setCellRenderer(cellRender);
+tColumn.setPreferredWidth(prefW = 45);
 tColumn.setResizable(false);
+totalW += prefW;
 
 for (int z = 1; z < tbl_main.getColumnCount(); z++) {
     tColumn = tbl_main.getColumnModel().getColumn(z);
     tColumn.setCellRenderer(new CellRender());
-    tColumn.setPreferredWidth(175);    
+    if (z < tbl_main.getColumnCount() - 1)
+         { tColumn.setPreferredWidth(prefW = 175);  
+           totalW += prefW; }
+    else { prefW  = sp_table.getViewport().getWidth() - totalW;
+           prefW -= sp_table.getVerticalScrollBar().getPreferredSize().width;
+           tColumn.setPreferredWidth(prefW >= 175 ? prefW : 175); } }
+}
+
+// ............................................................................
+// Відкрито *.exe файл
+
+else {
+
+    tColumn = tbl_main.getColumnModel().getColumn(0);
+    tColumn.setCellRenderer(cellRender);
+    tColumn.setPreferredWidth(prefW = 45);
+    tColumn.setResizable(false);
+    totalW += prefW;
+
+    tColumn = tbl_main.getColumnModel().getColumn(1);
+    tColumn.setCellRenderer(cellRender);
+    tColumn.setPreferredWidth(prefW = 55);
+    tColumn.setResizable(false);
+    totalW += prefW;
+
+    tColumn = tbl_main.getColumnModel().getColumn(2);
+    tColumn.setCellRenderer(new CellRender());
+    prefW  = sp_table.getViewport().getWidth() - totalW;
+    prefW -= sp_table.getVerticalScrollBar().getPreferredSize().width;
+    tColumn.setPreferredWidth(prefW >= 175 ? prefW : 175);
+
 }
 
 // ............................................................................
@@ -428,11 +837,47 @@ for (int z = 1; z < tbl_main.getColumnCount(); z++) {
 updateTableInfo();
 
 mni_find.setEnabled(true);
-tableModel.addTableModelListener((TableModelEvent e) -> {
-    mni_save.setEnabled(true);
-    dataWasChanged = true;
+tableModel.addTableModelListener((TableModelEvent evt) -> {
+    updateTableData(evt);
     updateAppTitle();
 });
+
+}
+
+// ============================================================================
+/// Оновлення даних в таблиці
+
+private void updateTableData (TableModelEvent e) {
+
+    if (!reactOnChange) { return; }
+
+    int row = e.getFirstRow();
+    mni_save.setEnabled(true);
+    dataWasChanged = true;
+
+    if (!fileExt.toLowerCase().equals("exe")) { return; }
+    if (!editedList.contains(row)) { editedList.add(row); }
+
+    int newLength = ((String) tbl_main.getValueAt(row, 2)).length();
+    int oldLength = textBlocks.get(row).getRawData().length;
+
+    String stat = newLength + "/" + oldLength;
+
+    reactOnChange = false;
+    tbl_main.setValueAt(stat, row, 1);
+    reactOnChange = true;
+
+}
+
+// ============================================================================
+/// Перевірка, чи заданий байт є допустимим
+
+private boolean isValidByte (byte b) {
+    
+    int unsInt = Byte.toUnsignedInt(b);    
+    return (unsInt >= 0x20 && unsInt <= 0x9b) ||
+            unsInt == 0x0A ||
+            unsInt == 0x0D;
 
 }
 
@@ -514,8 +959,7 @@ private void initAppIcons() {
         mni_fntDecompile = new JMenuItem();
         mni_fntCompile = new JMenuItem();
         sep_three = new JPopupMenu.Separator();
-        mni_rawDecompile = new JMenuItem();
-        mni_rawCompile = new JMenuItem();
+        mni_filterRows = new JMenuItem();
         mn_info = new JMenu();
         mni_about = new JMenuItem();
 
@@ -541,6 +985,11 @@ private void initAppIcons() {
         tbl_main.setRowSelectionAllowed(false);
         tbl_main.setShowGrid(true);
         tbl_main.getTableHeader().setReorderingAllowed(false);
+        tbl_main.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent evt) {
+                onTableClick(evt);
+            }
+        });
         sp_table.setViewportView(tbl_main);
 
         pnl_footer.setLayout(new FlowLayout(FlowLayout.CENTER, 50, 5));
@@ -612,7 +1061,6 @@ private void initAppIcons() {
 
         mni_fntCompile.setText("Запакувати шрифт");
         mni_fntCompile.setActionCommand("compileFont");
-        mni_fntCompile.setEnabled(false);
         mni_fntCompile.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
                 onMenuClick(evt);
@@ -621,25 +1069,15 @@ private void initAppIcons() {
         mn_edit.add(mni_fntCompile);
         mn_edit.add(sep_three);
 
-        mni_rawDecompile.setText("Розпакувати дані");
-        mni_rawDecompile.setActionCommand("decompileRaw");
-        mni_rawDecompile.setEnabled(false);
-        mni_rawDecompile.addActionListener(new ActionListener() {
+        mni_filterRows.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
+        mni_filterRows.setText("Фільтрувати рядки");
+        mni_filterRows.setActionCommand("filterRows");
+        mni_filterRows.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
                 onMenuClick(evt);
             }
         });
-        mn_edit.add(mni_rawDecompile);
-
-        mni_rawCompile.setText("Запакувати дані");
-        mni_rawCompile.setActionCommand("compileRaw");
-        mni_rawCompile.setEnabled(false);
-        mni_rawCompile.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                onMenuClick(evt);
-            }
-        });
-        mn_edit.add(mni_rawCompile);
+        mn_edit.add(mni_filterRows);
 
         mnb_main.add(mn_edit);
 
@@ -697,10 +1135,10 @@ private void initAppIcons() {
 
         case "decompileFont" -> showDecompileFontDialog();
         case "compileFont"   -> showCompileFontDialog();
-        case "decompileRaw"  -> showDecompileRawDialog();
-        case "compileRaw"    -> showCompileRawDialog();
-
-    }   
+        case "filterRows"    -> mni_filterRows.setFont(mni_filterRows.getFont()
+                                              .equals(strikeFont) ? null 
+                                                    : strikeFont);
+    }
     }//GEN-LAST:event_onMenuClick
 
 // ============================================================================
@@ -709,6 +1147,54 @@ private void initAppIcons() {
     private void onWindowClose(WindowEvent evt) {//GEN-FIRST:event_onWindowClose
         showExitDialog();
     }//GEN-LAST:event_onWindowClose
+
+    private void onTableClick(MouseEvent evt) {//GEN-FIRST:event_onTableClick
+        // TODO add your handling code here:
+        
+    if (fileExt.toLowerCase().equals("mt")) { return; }  
+    
+    int selectedRow = tbl_main.getSelectedRow();
+    TextBlock block = textBlocks.get(selectedRow);
+    
+    // ........................................................................
+    
+    if (evt.getButton() == MouseEvent.BUTTON2) {
+       
+        String message = "Оригінальний текст:\n%s\n\n" +
+                         "Розшифрований текст:\n%s\n\n" +
+                         "Новий текст:\n%s";
+
+        String orgText = new String(block.getRawData());
+        String decText = TextBlock.decodeText(block.getRawData());
+        String newText = (String) tbl_main.getValueAt(selectedRow, 2);
+        
+        message = message.formatted(orgText, decText, newText);
+        
+        JOptionPane.showMessageDialog(this, message);
+        
+    }
+    
+    // ........................................................................
+    
+    else if (evt.getButton() == MouseEvent.BUTTON3 &&
+             evt.getClickCount() >= 3) {
+        
+        int length = block.getRawData().length;
+        String stat = length + "/" + length;
+        String decodedText = TextBlock.decodeText(block.getRawData());
+
+        Integer s = selectedRow;
+
+        reactOnChange = false;
+        editedList.remove(s);
+        tbl_main.repaint();
+        tbl_main.setValueAt(stat, selectedRow, 1);
+        tbl_main.setValueAt(decodedText, selectedRow, 2);
+        reactOnChange = true;
+    
+    }
+        
+    }//GEN-LAST:event_onTableClick
 
 // ============================================================================
 /// Список усіх об'явлених змінних
@@ -722,17 +1208,16 @@ private void initAppIcons() {
     private JMenuBar mnb_main;
     private JMenuItem mni_about;
     private JMenuItem mni_exit;
+    private JMenuItem mni_filterRows;
     private JMenuItem mni_find;
     private JMenuItem mni_fntCompile;
     private JMenuItem mni_fntDecompile;
     private JMenuItem mni_open;
-    private JMenuItem mni_rawCompile;
-    private JMenuItem mni_rawDecompile;
     private JMenuItem mni_save;
     private JPanel pnl_footer;
     private JPopupMenu.Separator sep_one;
-    private JPopupMenu.Separator sep_two;
     private JPopupMenu.Separator sep_three;
+    private JPopupMenu.Separator sep_two;
     private JScrollPane sp_table;
     public JTable tbl_main;
     // End of variables declaration//GEN-END:variables
