@@ -6,6 +6,7 @@ import javax.swing.*;
 import javax.swing.filechooser.*;
 
 import static com.rutar.ttool_xapoc.TToolxApoc.*;
+import java.awt.Rectangle;
 
 // ............................................................................
 /// Корисні допоміжні методи
@@ -13,6 +14,22 @@ import static com.rutar.ttool_xapoc.TToolxApoc.*;
 /// 19.02.2026
 
 public class Utils {
+
+// ============================================================================
+/// Виділення клітинок у таблиці
+/// @param table таблиця, клітинки якої потрібно виділяти
+/// @param col номер стовбця клітинки, яку потрібно виділити
+/// @param row номер рядка клітинки, яку потрібно виділити
+
+public static void selectCell (JTable table, int col, int row) {
+
+table.setRowSelectionInterval   (row, row);
+table.setColumnSelectionInterval(col, col);
+
+Rectangle rect = table.getCellRect(row, col, true);
+table.scrollRectToVisible(rect);
+
+}
 
 // ============================================================================
 /// Отримання налаштованого JFileChooser'а

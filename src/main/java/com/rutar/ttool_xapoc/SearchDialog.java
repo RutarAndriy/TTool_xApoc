@@ -106,13 +106,8 @@ int targetRow = findArray.get(index)[0];
 int targetCol = findArray.get(index)[1];
 
 CellRender.setSearchedCell(targetCol, targetRow);
+Utils.selectCell(table, targetCol, targetRow);
 
-table.setRowSelectionInterval(targetRow, targetRow);
-table.setColumnSelectionInterval(targetCol, targetCol);
-
-Rectangle rect = table.getCellRect(targetRow, targetCol, true);
-table.scrollRectToVisible(rect);
-table.changeSelection(targetRow, targetCol, false, false);    
 lbl_num.setText((index+1) + "/" + findArray.size());
 updateAllComponentsState();
 editor.toFront();
