@@ -343,12 +343,12 @@ if (fileExt.toLowerCase().equals("exe")) {
         int oldLength = textBlocks.get(id).getRawData().length;
         int newLength = TextBlock.encodeText(editedText).length;
         
-        if (newLength > oldLength) { 
-            //selectData(2, id);
-            String msg = "Довжина рядка №" + (id + 1) + " перевищує " +
-                         "довжину оригінального рядка "
-                       + "на " + (newLength - oldLength) + " символ/ів";
-            showMessageDialog(this, msg, "Помилка", 0);
+        if (newLength > oldLength) {
+            Utils.selectCell(tbl_main, 2, id);
+            int delta = newLength - oldLength;
+            String msg = "Довжина рядка №%d перевищує довжину%n"
+                       + "оригінального рядка на %d символ/ів";
+            showMessageDialog(this, msg.formatted(id+1, delta), "Помилка", 0);
             return;
         } } }
 
