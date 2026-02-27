@@ -69,27 +69,27 @@ private void processBlock (byte[] rawData) {
 /// Отримання заголовку блоку нлопедії
 /// @return заголовок блоку нлопедії
 
-public String getTitle() { return TextBlock.decodeText(title); }
+public String getTitle() { return CodeTable.decodeText(title); }
 
 // ============================================================================
 /// Задання нового заголовку блоку нлопедії
 /// @param title новий заголовок блоку нлопедії
 
 public void setTitle (String title)
-    { this.title = TextBlock.encodeText(title); }
+    { this.title = CodeTable.encodeText(title); }
 
 // ============================================================================
 /// Отримання опису блоку нлопедії
 /// @return опис блоку нлопедії
 
-public String getDescription() { return TextBlock.decodeText(description); }
+public String getDescription() { return CodeTable.decodeText(description); }
 
 // ============================================================================
 /// Задання новиго опису блоку нлопедії
 /// @param description новий опис блоку нлопедії
 
 public void setDescription (String description)
-    { this.description = TextBlock.encodeText(description); }
+    { this.description = CodeTable.encodeText(description); }
 
 // ============================================================================
 /// Отримання мисиву "сирих" даних

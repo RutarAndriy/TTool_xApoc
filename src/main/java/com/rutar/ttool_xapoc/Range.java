@@ -61,6 +61,8 @@ public boolean contains (int value) {
 @Override
 public String toString() {
     
+    if (includeAll) { return "-";}
+    
     StringBuilder builder = new StringBuilder();
     for (SimpleRange range : ranges) {
         builder.append(range.toString());

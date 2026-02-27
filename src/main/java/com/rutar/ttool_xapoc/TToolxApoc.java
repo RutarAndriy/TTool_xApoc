@@ -222,22 +222,17 @@ catch (IOException e)
 
 private void openExeFile() {
 
-String tmp;
-Range range;
-TextBlock block;
-int pos = -1;
-ByteArrayOutputStream baos = new ByteArrayOutputStream();
+int pos = -1;                   // позиція читання даних, якщо (-1) - не задана
+var baos = new ByteArrayOutputStream();         // контейнер для зчитаних даних
+ArrayList<String> row = new ArrayList<>();    // представляє один рядок таблиці
 
-// ............................................................................
-
-prepareNewTable(false);
-
-inputFile = fileOpen.getSelectedFile();
-ArrayList<String> row = new ArrayList<>();
-
+// Очищення попередніх даних
 textBlocks.clear();
 editedList.clear();
 dataWasChanged = false;
+
+prepareNewTable(false);
+inputFile = fileOpen.getSelectedFile();
 
 // ............................................................................
 /// Зчитування *.exe файлів, як набору байтових даних
@@ -248,72 +243,67 @@ try {
 allBytes = Files.readAllBytes(inputFile.toPath());
 
 // Ручне задавання діапазонів, у межах яких є дані для обробки
-switch (inputFile.getName()) {
-    
-    case "UFO2P.EXE" -> { range = 
-        new Range("1346004..1353019,1353324..1360206,1360742..1368755,"
-                + "1368895..1376455,1376755..1392187,1392289..1396269"); }
-
-    case "UFO2P4.EXE" -> { range = 
-        new Range("1349588..1356603,1356908..1363790,1364326..1380039,"
-                + "1380339..1394373,1394509..1395771,1395873..1399853"); }
-
-    case "TACP.EXE" -> { range = 
-        new Range("1254172..1254400,3005388..3010255,"
-                + "3010307..3015444,3015521..3021497,3023446..3086216"); }
-
-    case "TACP4.EXE" -> { range = 
-        new Range("1245468..1245696,2996684..3001551,"
-                + "3001603..3002764,3002912..3012793,3014742..3077512"); }
-
-    default -> { range = new Range("-"); }
-
-}
+Range range;
+switch (inputFile.getName())
+    { case "UFO2P.EXE"  -> { range = new Range(ufo2p);  }
+      case "UFO2P4.EXE" -> { range = new Range(ufo2p4); }
+      case "TACP.EXE"   -> { range = new Range(tacp);   }
+      case "TACP4.EXE"  -> { range = new Range(tacp4);  }
+      default           -> { range = new Range("-");    } }
 
 // Вимкнення фільтрування рядків
-if (!mni_filterRows.getFont().equals(strikeFont)) { range = new Range("-"); }
+if (mni_filterRows.getFont().equals(strikeFont)) { range = new Range("-"); }
 
 // Пошук послідовностей, які потенційно можуть бути текстом для перекладу
 for (int z = 0; z < allBytes.length; z++) {
 
-    // Виявлено недопустимий символ
+    // Пропуск даних поза робочим діапазоном
     if (!range.contains(z)) { pos = -1;
                               baos.reset();
                               continue; }
     
     // Виявлено потенційний кінець текстового рядка
     if (allBytes[z] == 0) {
+        // Отримання байтового масиву
         byte[] bytes = baos.toByteArray();
+        // Перевірка мінімальної довжини текстового блоку
         if (bytes.length < minStrLen) { pos = -1; baos.reset(); continue; }
-        block = new TextBlock(pos, bytes);
-        textBlocks.add(block);
+        // Додавання нового текстового блоку до загального масиву
+        textBlocks.add(new TextBlock(pos, bytes));
+        // Очищення буферу
         baos.reset();
+        // Скидання позиції обробки
         pos = -1;
     }
     
     // Виявлено допустимий символ
-    else if (isValidByte(allBytes[z])) { if (pos == -1) { pos = z; }
-                                         baos.write(allBytes[z]); }
+    else if (CodeTable.isValidByte(allBytes[z])) {
+        // Якщо позиція обробки не задана - задаємо її
+        if (pos == -1) { pos = z; }
+        // Запис допустимого символу в буфер
+        baos.write(allBytes[z]); }
     
-    // Винятковий випадок
-    else { baos.reset();
+    // Виявлено недопустимий символ
+    else { // Очищення буферу
+           baos.reset();
+           // Скидання позиції обробки
            pos = -1; }
-    
+
 }
 
 // ............................................................................
 // Додавання всіх знайдених текстових блоків до таблиці
 
-for (int z = 0; z < textBlocks.size(); z++) {
-    
-    block = textBlocks.get(z);
-    tmp = TextBlock.decodeText(block.getRawData());
-    row.clear();
-    row.add(String.valueOf(z + 1));
-    row.add(tmp.length() + "/" + block.getRawData().length);
-    row.add(tmp);
-    tableModel.addRow(row.toArray(String[]::new));
-}
+int id = 0;
+String tmp;
+
+for (TextBlock tBlock : textBlocks)
+    { tmp = CodeTable.decodeText(tBlock.getRawData());
+      row.clear();
+      row.add(String.valueOf(++id));
+      row.add(tmp.length() + "/" + tBlock.getRawData().length);
+      row.add(tmp);
+      tableModel.addRow(row.toArray(String[]::new)); }
 
 finalizeNewTable(false);
 
@@ -321,7 +311,7 @@ finalizeNewTable(false);
 
 // ............................................................................
 
-catch (IOException ex)
+catch (IOException _)
     { showMessageDialog(this, "При відкриванні файлу відбулася критична "
                             + "помилка", "Помилка", ERROR_MESSAGE); }
 }
@@ -341,7 +331,7 @@ if (fileExt.toLowerCase().equals("exe")) {
         String editedText = (String) tbl_main.getValueAt(id, 2);
         
         int oldLength = textBlocks.get(id).getRawData().length;
-        int newLength = TextBlock.encodeText(editedText).length;
+        int newLength = CodeTable.encodeText(editedText).length;
         
         if (newLength > oldLength) {
             Utils.selectCell(tbl_main, 2, id);
@@ -445,7 +435,7 @@ for (Integer edited : editedList) {
     int blockSize = block.getRawData().length;
     String newText = (String) tbl_main.getValueAt(edited, 2);
     byte[] bytes = new byte[blockSize];
-    byte[] encoded = TextBlock.encodeText(newText);
+    byte[] encoded = CodeTable.encodeText(newText);
     
     // Якщо довжини старого і нового текстів співпадають - все ок
     if (encoded.length == bytes.length) { bytes = encoded; }
@@ -463,7 +453,7 @@ for (Integer edited : editedList) {
         // Оновлення даних у таблиці
         reactOnChange = false;
         tbl_main.setValueAt(bytes.length + "/" + bytes.length, edited, 1);
-        tbl_main.setValueAt(TextBlock.decodeText(bytes), edited, 2);
+        tbl_main.setValueAt(CodeTable.decodeText(bytes), edited, 2);
         reactOnChange = true;
         
         // Оновлення дних текстового блоку
@@ -870,18 +860,6 @@ private void updateTableData (TableModelEvent e) {
 }
 
 // ============================================================================
-/// Перевірка, чи заданий байт є допустимим
-
-private boolean isValidByte (byte b) {
-    
-    int unsInt = Byte.toUnsignedInt(b);    
-    return (unsInt >= 0x20 && unsInt <= 0x9b) ||
-            unsInt == 0x0A ||
-            unsInt == 0x0D;
-
-}
-
-// ============================================================================
 /// Оновлення інформації про таблицю
 
 private void updateTableInfo() {
@@ -1160,12 +1138,12 @@ private void initAppIcons() {
     
     if (evt.getButton() == MouseEvent.BUTTON2) {
        
-        String message = "Оригінальний текст:\n%s\n\n" +
-                         "Розшифрований текст:\n%s\n\n" +
-                         "Новий текст:\n%s";
+        String message = "Оригінальний текст:%n\"%s\"%n%n" +
+                         "Розшифрований текст:%n\"%s\"%n%n" +
+                         "Новий текст:%n\"%s\"";
 
         String orgText = new String(block.getRawData());
-        String decText = TextBlock.decodeText(block.getRawData());
+        String decText = CodeTable.decodeText(block.getRawData());
         String newText = (String) tbl_main.getValueAt(selectedRow, 2);
         
         message = message.formatted(orgText, decText, newText);
@@ -1181,7 +1159,7 @@ private void initAppIcons() {
         
         int length = block.getRawData().length;
         String stat = length + "/" + length;
-        String decodedText = TextBlock.decodeText(block.getRawData());
+        String decodedText = CodeTable.decodeText(block.getRawData());
 
         Integer s = selectedRow;
 
@@ -1221,6 +1199,26 @@ private void initAppIcons() {
     private JScrollPane sp_table;
     public JTable tbl_main;
     // End of variables declaration//GEN-END:variables
+
+// ============================================================================
+// Задання допустимих діапазонів обробки даних, 
+// необхідні для фільтрування недопустимих текстових блоків
+
+private final String ufo2p =
+    "1346004..1353019,1353324..1360206,1360742..1368755," +
+    "1368895..1376455,1376755..1392187,1392289..1396269";
+
+private final String ufo2p4 =
+    "1349588..1356603,1356908..1363790,1364326..1380039," +
+    "1380339..1394373,1394509..1395771,1395873..1399853";
+
+private final String tacp =
+    "1254172..1254400,3005388..3010255," +
+    "3010307..3015444,3015521..3021497,3023446..3086216";
+
+private final String tacp4 =
+    "1245468..1245696,2996684..3001551," +
+    "3001603..3002764,3002912..3012793,3014742..3077512";
 
 // Кінець класу TToolxApoc ====================================================
 
