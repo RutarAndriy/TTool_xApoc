@@ -79,7 +79,7 @@ initComponents();
 initAppIcons();
 
 fileOpen     = Utils.getFileChooser(FILES_ONLY, Map.of
-                                   ("mt",  "xApoc уфопедія",
+                                   ("mt",  "xApoc нлопедія",
                                     "exe", "xApoc виконувані файли"));
 
 fntCompile   = Utils.getFileChooser(DIRECTORIES_ONLY,
@@ -376,7 +376,7 @@ buffer = ByteBuffer.allocate((ufopediaBlocks.size() + 1) * 4);
 buffer.order(ByteOrder.LITTLE_ENDIAN);
 buffer.putInt(pos);
 
-// Запис файлу-уфопедії та файлу-дескриптора
+// Запис нлопедії та файлу-дескриптора
 try (FileOutputStream pediaF = new FileOutputStream(outputFile, false);
      FileOutputStream pediaD = new FileOutputStream(ufopediaDesc, false)) {
 
@@ -1126,29 +1126,31 @@ private void initAppIcons() {
         showExitDialog();
     }//GEN-LAST:event_onWindowClose
 
+// ============================================================================
+/// Прослуховування натискань у таблиці
+
     private void onTableClick(MouseEvent evt) {//GEN-FIRST:event_onTableClick
-        // TODO add your handling code here:
-        
-    if (fileExt.toLowerCase().equals("mt")) { return; }  
     
     int selectedRow = tbl_main.getSelectedRow();
+    
+    if (selectedRow == -1 ||
+        fileExt.toLowerCase().equals("mt")) { return; }  
+    
     TextBlock block = textBlocks.get(selectedRow);
     
     // ........................................................................
     
     if (evt.getButton() == MouseEvent.BUTTON2) {
        
-        String message = "Оригінальний текст:%n\"%s\"%n%n" +
-                         "Розшифрований текст:%n\"%s\"%n%n" +
-                         "Новий текст:%n\"%s\"";
+        String msg = "Оригінальний текст:%n\"%s\"%n%n" +
+                     "Розшифрований текст:%n\"%s\"%n%n" +
+                     "Новий текст:%n\"%s\"";
 
         String orgText = new String(block.getRawData());
         String decText = CodeTable.decodeText(block.getRawData());
         String newText = (String) tbl_main.getValueAt(selectedRow, 2);
         
-        message = message.formatted(orgText, decText, newText);
-        
-        JOptionPane.showMessageDialog(this, message);
+        showMessageDialog(this, msg.formatted(orgText, decText, newText));
         
     }
     
@@ -1159,15 +1161,13 @@ private void initAppIcons() {
         
         int length = block.getRawData().length;
         String stat = length + "/" + length;
-        String decodedText = CodeTable.decodeText(block.getRawData());
-
-        Integer s = selectedRow;
+        String decodedText = CodeTable.decodeText(block.getRawData());    
 
         reactOnChange = false;
-        editedList.remove(s);
         tbl_main.repaint();
         tbl_main.setValueAt(stat, selectedRow, 1);
         tbl_main.setValueAt(decodedText, selectedRow, 2);
+        editedList.remove(Integer.valueOf(selectedRow));
         reactOnChange = true;
     
     }
