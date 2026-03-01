@@ -45,20 +45,20 @@ private boolean dataWasChanged;                // якщо true - дані бу�
 
 private File tmpFile;                                       // допоміжна змінна
 private byte[] allBytes;                                   // всі зчитані байти
-private byte[] allAdditional;
-private final int minStrLen = 2;
+private byte[] allAdditional;                          // допоміжний масив байт
+
 private ByteBuffer buffer;                        // буфер для зчитування даних
 private SearchDialog searchDialog;         // діалогове вікно пошуку інформації
 
-private final Font strikeFont;
+private final Font strikeFont;                             // закреслений шрифт
+private boolean reactOnChange = true;                       // допоміжна змінна
 
+private final ArrayList<String> row                   = new ArrayList<>();
 private final ArrayList<Integer> ufopediaIndexes      = new ArrayList<>();
 private final ArrayList<UFOPediaBlock> ufopediaBlocks = new ArrayList<>();
 
-public static final ArrayList<TextBlock> textBlocks = new ArrayList<>();
 public static final ArrayList<Integer> editedList = new ArrayList<>();
-
-private boolean reactOnChange = true;
+public static final ArrayList<TextBlock> textBlocks = new ArrayList<>();
 
 // ............................................................................
 
@@ -81,7 +81,6 @@ initAppIcons();
 fileOpen     = Utils.getFileChooser(FILES_ONLY, Map.of
                                    ("mt",  "xApoc нлопедія",
                                     "exe", "xApoc виконувані файли"));
-
 fntCompile   = Utils.getFileChooser(DIRECTORIES_ONLY,
                                     "dat", "xApoc файли шрифтів");
 fntDecompile = Utils.getFileChooser(FILES_ONLY,
@@ -167,7 +166,6 @@ private void openMtFile() {
 prepareNewTable(true);
 
 inputFile = fileOpen.getSelectedFile();
-ArrayList<String> row = new ArrayList<>();
 File mtDesc = new File(inputFile.getAbsolutePath() + "I");
 
 // Очищення попередніх даних
@@ -222,10 +220,6 @@ catch (IOException e)
 
 private void openExeFile() {
 
-int pos = -1;                   // позиція читання даних, якщо (-1) - не задана
-var baos = new ByteArrayOutputStream();         // контейнер для зчитаних даних
-ArrayList<String> row = new ArrayList<>();    // представляє один рядок таблиці
-
 // Очищення попередніх даних
 textBlocks.clear();
 editedList.clear();
@@ -239,57 +233,12 @@ inputFile = fileOpen.getSelectedFile();
 
 try {
 
-// Зчитування всіх байт
-allBytes = Files.readAllBytes(inputFile.toPath());
-
-// Ручне задавання діапазонів, у межах яких є дані для обробки
-Range range;
-switch (inputFile.getName())
-    { case "UFO2P.EXE"  -> { range = new Range(ufo2p);  }
-      case "UFO2P4.EXE" -> { range = new Range(ufo2p4); }
-      case "TACP.EXE"   -> { range = new Range(tacp);   }
-      case "TACP4.EXE"  -> { range = new Range(tacp4);  }
-      default           -> { range = new Range("-");    } }
-
 // Вимкнення фільтрування рядків
-if (mni_filterRows.getFont().equals(strikeFont)) { range = new Range("-"); }
+boolean filterRows  = !mni_filterRows .getFont().equals(strikeFont);
+boolean strictRules = !mni_strictRules.getFont().equals(strikeFont);
 
-// Пошук послідовностей, які потенційно можуть бути текстом для перекладу
-for (int z = 0; z < allBytes.length; z++) {
-
-    // Пропуск даних поза робочим діапазоном
-    if (!range.contains(z)) { pos = -1;
-                              baos.reset();
-                              continue; }
-    
-    // Виявлено потенційний кінець текстового рядка
-    if (allBytes[z] == 0) {
-        // Отримання байтового масиву
-        byte[] bytes = baos.toByteArray();
-        // Перевірка мінімальної довжини текстового блоку
-        if (bytes.length < minStrLen) { pos = -1; baos.reset(); continue; }
-        // Додавання нового текстового блоку до загального масиву
-        textBlocks.add(new TextBlock(pos, bytes));
-        // Очищення буферу
-        baos.reset();
-        // Скидання позиції обробки
-        pos = -1;
-    }
-    
-    // Виявлено допустимий символ
-    else if (CodeTable.isValidByte(allBytes[z])) {
-        // Якщо позиція обробки не задана - задаємо її
-        if (pos == -1) { pos = z; }
-        // Запис допустимого символу в буфер
-        baos.write(allBytes[z]); }
-    
-    // Виявлено недопустимий символ
-    else { // Очищення буферу
-           baos.reset();
-           // Скидання позиції обробки
-           pos = -1; }
-
-}
+// Обробка "сирих" байт *.exe файлу
+new ExeProcessor(inputFile, textBlocks, filterRows, strictRules).process();
 
 // ............................................................................
 // Додавання всіх знайдених текстових блоків до таблиці
@@ -360,16 +309,15 @@ updateAppTitle();
 
 private void saveMtFile() {
 
-// Utils.replaceUnusedChars("...");
+String tmp;            // допоміжна змінна
+byte[] data;           // масив даних
+int pos = 0;           // позиція обробки тексту
+UFOPediaBlock block;   // блок нлопедії
 
 try {
 
 outputFile = fileOpen.getSelectedFile();
 File ufopediaDesc = new File(inputFile.getAbsolutePath() + "I");
-UFOPediaBlock block;
-String tmp;
-byte[] data;
-int pos = 0;
 
 // Ініціалізація буферу для запису даних
 buffer = ByteBuffer.allocate((ufopediaBlocks.size() + 1) * 4);
@@ -385,8 +333,10 @@ for (int z = 0; z < ufopediaBlocks.size(); z++) {
     
     block = ufopediaBlocks.get(z);
     tmp = (String) tbl_main.getValueAt(z, 1);
+    tmp = Utils.replaceUnusedChars(tmp);
     block.setTitle(tmp);
     tmp = (String) tbl_main.getValueAt(z, 2);
+    tmp = Utils.replaceUnusedChars(tmp);
     block.setDescription(tmp);
     
     data = block.getRawData();
@@ -426,16 +376,17 @@ catch (HeadlessException | IOException _)
 
 private void saveExeFile() {
 
-// Utils.replaceUnusedChars("...");
+String tmp;   // допоміжна змінна
 
 // Обробка всіх текстових блоків
 for (Integer edited : editedList) {
 
     TextBlock block = textBlocks.get(edited);
     int blockSize = block.getRawData().length;
-    String newText = (String) tbl_main.getValueAt(edited, 2);
+    tmp = (String) tbl_main.getValueAt(edited, 2);
+    tmp = Utils.replaceUnusedChars(tmp);
     byte[] bytes = new byte[blockSize];
-    byte[] encoded = CodeTable.encodeText(newText);
+    byte[] encoded = CodeTable.encodeText(tmp);
     
     // Якщо довжини старого і нового текстів співпадають - все ок
     if (encoded.length == bytes.length) { bytes = encoded; }
@@ -841,20 +792,20 @@ private void updateTableData (TableModelEvent e) {
 
     if (!reactOnChange) { return; }
 
-    int row = e.getFirstRow();
+    int rowId = e.getFirstRow();
     mni_save.setEnabled(true);
     dataWasChanged = true;
 
     if (!fileExt.toLowerCase().equals("exe")) { return; }
-    if (!editedList.contains(row)) { editedList.add(row); }
+    if (!editedList.contains(rowId)) { editedList.add(rowId); }
 
-    int newLength = ((String) tbl_main.getValueAt(row, 2)).length();
-    int oldLength = textBlocks.get(row).getRawData().length;
+    int newLength = ((String) tbl_main.getValueAt(rowId, 2)).length();
+    int oldLength = textBlocks.get(rowId).getRawData().length;
 
     String stat = newLength + "/" + oldLength;
 
     reactOnChange = false;
-    tbl_main.setValueAt(stat, row, 1);
+    tbl_main.setValueAt(stat, rowId, 1);
     reactOnChange = true;
 
 }
@@ -938,6 +889,7 @@ private void initAppIcons() {
         mni_fntCompile = new JMenuItem();
         sep_three = new JPopupMenu.Separator();
         mni_filterRows = new JMenuItem();
+        mni_strictRules = new JMenuItem();
         mn_info = new JMenu();
         mni_about = new JMenuItem();
 
@@ -1047,8 +999,7 @@ private void initAppIcons() {
         mn_edit.add(mni_fntCompile);
         mn_edit.add(sep_three);
 
-        mni_filterRows.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
-        mni_filterRows.setText("Фільтрувати рядки");
+        mni_filterRows.setText("Ручне фільтрування рядків");
         mni_filterRows.setActionCommand("filterRows");
         mni_filterRows.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
@@ -1056,6 +1007,15 @@ private void initAppIcons() {
             }
         });
         mn_edit.add(mni_filterRows);
+
+        mni_strictRules.setText("Строгі правила фільтрування");
+        mni_strictRules.setActionCommand("strictRules");
+        mni_strictRules.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+                onMenuClick(evt);
+            }
+        });
+        mn_edit.add(mni_strictRules);
 
         mnb_main.add(mn_edit);
 
@@ -1113,9 +1073,13 @@ private void initAppIcons() {
 
         case "decompileFont" -> showDecompileFontDialog();
         case "compileFont"   -> showCompileFontDialog();
-        case "filterRows"    -> mni_filterRows.setFont(mni_filterRows.getFont()
-                                              .equals(strikeFont) ? null 
-                                                    : strikeFont);
+        
+        case "filterRows"  -> mni_filterRows.setFont(mni_filterRows.getFont()
+                                            .equals(strikeFont) ? null 
+                                                  : strikeFont);
+        case "strictRules" -> mni_strictRules.setFont(mni_strictRules.getFont()
+                                             .equals(strikeFont) ? null 
+                                                   : strikeFont);
     }
     }//GEN-LAST:event_onMenuClick
 
@@ -1140,7 +1104,8 @@ private void initAppIcons() {
     
     // ........................................................................
     
-    if (evt.getButton() == MouseEvent.BUTTON2) {
+    if (evt.getButton() == MouseEvent.BUTTON2 ||
+       (evt.isControlDown() && evt.getButton() == MouseEvent.BUTTON3)) {
        
         String msg = "Оригінальний текст:%n\"%s\"%n%n" +
                      "Розшифрований текст:%n\"%s\"%n%n" +
@@ -1192,6 +1157,7 @@ private void initAppIcons() {
     private JMenuItem mni_fntDecompile;
     private JMenuItem mni_open;
     private JMenuItem mni_save;
+    private JMenuItem mni_strictRules;
     private JPanel pnl_footer;
     private JPopupMenu.Separator sep_one;
     private JPopupMenu.Separator sep_three;
@@ -1199,26 +1165,6 @@ private void initAppIcons() {
     private JScrollPane sp_table;
     public JTable tbl_main;
     // End of variables declaration//GEN-END:variables
-
-// ============================================================================
-// Задання допустимих діапазонів обробки даних, 
-// необхідні для фільтрування недопустимих текстових блоків
-
-private final String ufo2p =
-    "1346004..1353019,1353324..1360206,1360742..1368755," +
-    "1368895..1376455,1376755..1392187,1392289..1396269";
-
-private final String ufo2p4 =
-    "1349588..1356603,1356908..1363790,1364326..1380039," +
-    "1380339..1394373,1394509..1395771,1395873..1399853";
-
-private final String tacp =
-    "1254172..1254400,3005388..3010255," +
-    "3010307..3015444,3015521..3021497,3023446..3086216";
-
-private final String tacp4 =
-    "1245468..1245696,2996684..3001551," +
-    "3001603..3002764,3002912..3012793,3014742..3077512";
 
 // Кінець класу TToolxApoc ====================================================
 

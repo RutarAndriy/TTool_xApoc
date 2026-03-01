@@ -92,11 +92,17 @@
             </MenuItem>
             <MenuItem class="javax.swing.JMenuItem" name="mni_filterRows">
               <Properties>
-                <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.editors.KeyStrokeEditor">
-                  <KeyStroke key="Ctrl+F"/>
-                </Property>
-                <Property name="text" type="java.lang.String" value="&#x424;&#x456;&#x43b;&#x44c;&#x442;&#x440;&#x443;&#x432;&#x430;&#x442;&#x438; &#x440;&#x44f;&#x434;&#x43a;&#x438;"/>
+                <Property name="text" type="java.lang.String" value="&#x420;&#x443;&#x447;&#x43d;&#x435; &#x444;&#x456;&#x43b;&#x44c;&#x442;&#x440;&#x443;&#x432;&#x430;&#x43d;&#x43d;&#x44f; &#x440;&#x44f;&#x434;&#x43a;&#x456;&#x432;"/>
                 <Property name="actionCommand" type="java.lang.String" value="filterRows"/>
+              </Properties>
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="onMenuClick"/>
+              </Events>
+            </MenuItem>
+            <MenuItem class="javax.swing.JMenuItem" name="mni_strictRules">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="&#x421;&#x442;&#x440;&#x43e;&#x433;&#x456; &#x43f;&#x440;&#x430;&#x432;&#x438;&#x43b;&#x430; &#x444;&#x456;&#x43b;&#x44c;&#x442;&#x440;&#x443;&#x432;&#x430;&#x43d;&#x43d;&#x44f;"/>
+                <Property name="actionCommand" type="java.lang.String" value="strictRules"/>
               </Properties>
               <Events>
                 <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="onMenuClick"/>

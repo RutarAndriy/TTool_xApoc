@@ -31,8 +31,10 @@ public static String decodeText (byte[] encodedText)
 
 // ============================================================================
 /// Перетворення типу byte у тип char
+/// @param key байт для перетворення
+/// @return результат перетворення
 
-private static char decodeChar (byte key)
+public static char decodeChar (byte key)
     { Optional<Character> value = Optional.of(codes.get(key));
       return value.orElseThrow(); }
 
@@ -48,8 +50,10 @@ public static byte[] encodeText (String decodedText)
 
 // ============================================================================
 /// Перетворення типу char у тип byte
+/// @param value символ для перетворення
+/// @return результат перетворення
 
-private static byte encodeChar (char value)
+public static byte encodeChar (char value)
     { for (var entry : codes.entrySet())
           { if (entry.getValue().equals(value)) { return entry.getKey(); } }
       // Якщо ключа не існує - повертаємо код символу ?

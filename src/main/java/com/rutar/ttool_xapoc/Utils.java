@@ -1,12 +1,12 @@
 package com.rutar.ttool_xapoc;
 
 import java.io.*;
+import java.awt.*;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.filechooser.*;
 
 import static com.rutar.ttool_xapoc.TToolxApoc.*;
-import java.awt.Rectangle;
 
 // ............................................................................
 /// Корисні допоміжні методи
@@ -23,11 +23,11 @@ public class Utils {
 
 public static void selectCell (JTable table, int col, int row) {
 
-table.setRowSelectionInterval   (row, row);
-table.setColumnSelectionInterval(col, col);
+    table.setRowSelectionInterval   (row, row);
+    table.setColumnSelectionInterval(col, col);
 
-Rectangle rect = table.getCellRect(row, col, true);
-table.scrollRectToVisible(rect);
+    Rectangle rect = table.getCellRect(row, col, true);
+    table.scrollRectToVisible(rect);
 
 }
 
@@ -91,12 +91,8 @@ public static File getLastDir (JFileChooser chooser) {
 /// @param value текст із невикористовуваними символами
 /// @return текст із заміненими символами
 
-public static String replaceUnusedChars (String value) {
-    
-    return value.replace('’', '\'')
-                .replace('Ґ', 'Г')
-                .replace('ґ', 'г');
-}
+public static String replaceUnusedChars (String value)
+    { return value.replace('’', '\''); }
 
 // ============================================================================
 /// Виведення байтового масиву в консоль у вигляді hex-значень
@@ -107,7 +103,7 @@ public static void printAsHex (byte[] array) {
 for (int q = 0; q < array.length; q++)
     { IO.print(" " + String.format("%02X", array[q]));
       if ((q+1) % 8  == 0) { IO.print(" ");  }
-      if ((q+1) % 16 == 0) { IO.println(""); } } }
+      if ((q+1) % 16 == 0) { IO.println(""); } } IO.println(); }
 
 // Кінець класу Utils =========================================================
 
