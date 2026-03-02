@@ -525,73 +525,8 @@ int result = fntDecompile.showOpenDialog(this);
 if (result != JFileChooser.APPROVE_OPTION) { return; }
 
 inputFile = fntDecompile.getSelectedFile();
+new FontProcessor(this, inputFile).decompileFont();
 
-String dirPath;                         // шлях до папки із результатом обробки
-int w, h, d, color;                                         // допоміжні змінні
-BufferedImage image;                                   // зображення для запису
-
-// Ініціалізація допоміжних змінних, які залежать від назви файлу шрифту
-switch (inputFile.getName().split("\\.")[0]) {
-    case "BIGFONT"  -> { w = 14; h = 24; d = 24; }
-    case "SMALFONT" -> { w = 14; h = 15; d = 30; }
-    case "SMALLSET" -> { w = 8;  h = 12; d = -1; }
-    default         -> { showMessageDialog(this, "Неможливо розпакувати даний "
-                                               + "шрифт!"); return; } }
-
-// ............................................................................
-
-try {
-
-// Зчитування файлів шрифта та дескиптора, якщо він існує 
-allBytes = Files.readAllBytes(inputFile.toPath());
-if (d != -1) { File desc = new File(inputFile.getAbsolutePath()
-                                             .replace(".DAT", ".SPC"));
-               allAdditional = Files.readAllBytes(desc.toPath()); }
-
-// Створення папки для запису результатів розпакування
-dirPath  = inputFile.getParent() + separator;
-dirPath += inputFile.getName().replace(".DAT", separator);
-new File(dirPath).mkdir();
-
-// Ініціалізація допоміжної змінної та кількості символів у шрифті
-String proc = d == -1 ? "" : "_%d";
-int charsCount = allBytes.length / w / h;
-
-// ............................................................................
-// Обробка усіх символів у циклі
-
-for (int z = 0; z < charsCount; z++) {
-    
-    int len = -1;
-    if (d != -1) { len = allAdditional[z * d + d + d/2]; }
-    image = new BufferedImage(w, h, BufferedImage.TYPE_3BYTE_BGR);
-    
-    for (int r = 0; r < h; r++) {
-    for (int c = 0; c < w; c++) {
-
-        int index = (z * w * h) + r * w + c;
-        color = allBytes[index] == 0 ? 0x0 : 0xFFFFFF;
-        image.setRGB(c, r, color);
-        
-    }
-    }
-    
-    // Запис результату в файл
-    String imageName = String.format("%03d_%02X" + proc, z + 1, z + 33, len);
-    File output = new File(dirPath + imageName + ".bmp");
-    ImageIO.write(image, "bmp", output);
-    
-}
-
-showMessageDialog(this, "Шрифт успішно розпаковано!");
-
-}
-
-// ............................................................................
-
-catch (HeadlessException | IOException _)
-    { showMessageDialog(this, "При розпакуванні шрифта відбулася критична "
-                            + "помилка", "Помилка", ERROR_MESSAGE); }
 }
 
 // ============================================================================
@@ -606,86 +541,8 @@ int result = fntCompile.showOpenDialog(this);
 if (result != JFileChooser.APPROVE_OPTION) { return; }
 
 inputFile = fntCompile.getSelectedFile();
+new FontProcessor(this, inputFile).compileFont();
 
-int w, h, d, color;                                         // допоміжні змінні
-BufferedImage image;                                   // зображення для запису
-String dirPath = inputFile.getAbsolutePath();        // шлях до вихідних файлів
-
-outputFile = new File(dirPath + ".DAT");
-
-// Ініціалізація допоміжної змінної, яка залежать від назви файлу шрифту
-switch (inputFile.getName()) {
-   case "BIGFONT"  -> { d = 24; }
-   case "SMALFONT" -> { d = 30; }
-   case "SMALLSET" -> { d = -1; }
-   default         -> { showMessageDialog(this, "Неможливо запакувати даний "
-                                              + "шрифт!"); return; } }
-
-// Файл опису шрифта
-File fontDesc = new File(outputFile.getAbsolutePath().replace(".DAT", ".SPC"));
-
-// Якщо файл опису відсутній - відображення повідомлення про помилку
-if (d != -1 && !fontDesc.exists())
-    { showMessageDialog(this, "Не знайдено файл опису \n" +
-                              "шрифта: " + fontDesc.getName(), "Помилка", 0);
-      return; }
-
-// ............................................................................
-// Збирання окремих символів у єдиний файл шрифту
-
-try (FileOutputStream fos = new FileOutputStream(outputFile);
-     BufferedOutputStream bos = new BufferedOutputStream(fos)) {
-
-// Масив зображень окремих символів
-File[] allFiles = inputFile.listFiles();
-
-// Зчитування оригінальних описів шрифтів
-if (d != -1) { allAdditional = Files.readAllBytes(fontDesc.toPath()); }
-
-// Обробка символів у циклі
-for (int z = 0; z < allFiles.length; z++) {
-
-    // Отримання назви файлу для обробки
-    String imageName = String.format("%03d_%02X", z + 1, z + 33);
-    for (File file : allFiles) {
-        if (file.getName().startsWith(imageName)) { imageName = file.getName();
-                                                    break; } }
-    
-    // Отримання ширини символу
-    byte len = -1;
-    if (d != -1) { int from = imageName.lastIndexOf("_") + 1;
-                   int to = imageName.lastIndexOf(".");
-                   len = Byte.parseByte(imageName.substring(from, to)); }
-    
-    // Зчитування даних зображення
-    image = ImageIO.read(new File(dirPath + separator + imageName));
-    byte[] imageData = ((DataBufferByte)(image.getRaster().getDataBuffer()))
-                                                          .getData();
-    byte[] writable = new byte[imageData.length / 3];
-    
-    // Обробка та запис даних
-    for (int pixel = 0; pixel < writable.length; pixel++)
-        { writable[pixel] = (byte) (imageData[pixel * 3] == 0 ? 0x0 : 0x1); }
-    bos.write(writable);
-    
-    // Обробка даних опису шрифта
-    if (d != -1) { for (int q = 0; q < d/2; q++)
-                       { allAdditional[z * d + d + d/2 + q] = len; } }
-}
-
-// Запис даних опису шрифта у файл
-if (d != -1) { try (var fosDesc = new FileOutputStream(fontDesc))
-                   { fosDesc.write(allAdditional); } }
-
-showMessageDialog(this, "Шрифт успішно запаковано!");
-
-}
-
-// ............................................................................
-
-catch (Exception _)
-    { showMessageDialog(this, "При пакуванні шрифта відбулася критична "
-                            + "помилка", "Помилка", ERROR_MESSAGE); }
 }
 
 // ============================================================================
