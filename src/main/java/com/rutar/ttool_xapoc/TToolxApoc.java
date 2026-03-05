@@ -7,7 +7,6 @@ import java.nio.*;
 import java.util.*;
 import javax.swing.*;
 import java.awt.font.*;
-import java.nio.file.*;
 import javax.imageio.*;
 import java.util.jar.*;
 import java.awt.event.*;
@@ -20,7 +19,6 @@ import javax.swing.filechooser.*;
 import com.rutar.ua_translator.*;
 import com.formdev.flatlaf.themes.*;
 
-import static java.io.File.*;
 import static javax.swing.JOptionPane.*;
 import static javax.swing.JFileChooser.*;
 
@@ -45,7 +43,6 @@ private boolean dataWasChanged;                // якщо true - дані бу�
 
 private File tmpFile;                                       // допоміжна змінна
 private byte[] allBytes;                                   // всі зчитані байти
-private byte[] allAdditional;                          // допоміжний масив байт
 
 private ByteBuffer buffer;                        // буфер для зчитування даних
 private SearchDialog searchDialog;         // діалогове вікно пошуку інформації
@@ -79,7 +76,7 @@ initComponents();
 initAppIcons();
 
 fileOpen     = Utils.getFileChooser(FILES_ONLY, Map.of
-                                   ("mt",  "xApoc нлопедія",
+                                   ("mt",  "xApoc НЛОпедія",
                                     "exe", "xApoc виконувані файли"));
 fntCompile   = Utils.getFileChooser(DIRECTORIES_ONLY,
                                     "dat", "xApoc файли шрифтів");
@@ -164,45 +161,26 @@ updateAppTitle();
 private void openMtFile() {
 
 prepareNewTable(true);
-
-inputFile = fileOpen.getSelectedFile();
-File mtDesc = new File(inputFile.getAbsolutePath() + "I");
-
-// Очищення попередніх даних
-ufopediaBlocks.clear();
-ufopediaIndexes.clear();
 dataWasChanged = false;
 
-try { 
+inputFile = fileOpen.getSelectedFile();
 
-// Зчитування файлів UFO-педії
-allBytes = Files.readAllBytes(inputFile.toPath());
-allAdditional = Files.readAllBytes(mtDesc.toPath());
+try {
 
-buffer = ByteBuffer.wrap(allAdditional);
-buffer.order(ByteOrder.LITTLE_ENDIAN);
+// Обробка "сирих" байт *.exe файлу
+new UFOPediaProcessor(inputFile, ufopediaBlocks).process();
 
-// Отримання індексів значущих блоків
-while (buffer.remaining() >= 4) { ufopediaIndexes.add(buffer.getInt()); }
-
-// Обробка блоків FO-педії в циклі
-for (int z = 0; z < ufopediaIndexes.size() - 1; z++) {
-    
-    // Отримання блоку даних
-    int from = ufopediaIndexes.get(z);
-    int to   = ufopediaIndexes.get(z + 1);
-    var block = new UFOPediaBlock(Arrays.copyOfRange(allBytes, from, to));
-    
-    // Парсинг блоку даних
-    row.clear();
-    row.add(String.valueOf(z + 1));
-    row.add(block.getTitle());
-    row.add(block.getDescription());
-    
-    // Додавання даних у таблицю
-    tableModel.addRow(row.toArray(String[]::new));
-    ufopediaBlocks.add(block);
-}
+// Обробка оброблених блоків НЛОпедії в циклі
+for (int z = 0; z < ufopediaBlocks.size(); z++)
+    { // Отримання блоку даних
+      var block = ufopediaBlocks.get(z);
+      // Парсинг блоку даних
+      row.clear();
+      row.add(String.valueOf(z + 1));
+      row.add(block.getTitle());
+      row.add(block.getDescription());
+      // Додавання даних у таблицю
+      tableModel.addRow(row.toArray(String[]::new)); }
 
 finalizeNewTable(true);
 
@@ -211,7 +189,7 @@ finalizeNewTable(true);
 // ............................................................................
 
 catch (IOException e)
-    { showMessageDialog(this, "При відкриванні файлу відбулася критична " +
+    { showMessageDialog(this, "При обробленні файлу відбулася критична " +
                               "помилка", "Помилка", ERROR_MESSAGE); }
 }
 
@@ -312,7 +290,7 @@ private void saveMtFile() {
 String tmp;            // допоміжна змінна
 byte[] data;           // масив даних
 int pos = 0;           // позиція обробки тексту
-UFOPediaBlock block;   // блок нлопедії
+UFOPediaBlock block;   // блок НЛОпедії
 
 try {
 
@@ -324,7 +302,7 @@ buffer = ByteBuffer.allocate((ufopediaBlocks.size() + 1) * 4);
 buffer.order(ByteOrder.LITTLE_ENDIAN);
 buffer.putInt(pos);
 
-// Запис нлопедії та файлу-дескриптора
+// Запис НЛОпедії та файлу-дескриптора
 try (FileOutputStream pediaF = new FileOutputStream(outputFile, false);
      FileOutputStream pediaD = new FileOutputStream(ufopediaDesc, false)) {
 
