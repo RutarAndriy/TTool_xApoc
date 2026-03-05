@@ -44,14 +44,12 @@ private boolean dataWasChanged;                // якщо true - дані бу�
 private File tmpFile;                                       // допоміжна змінна
 private byte[] allBytes;                                   // всі зчитані байти
 
-private ByteBuffer buffer;                        // буфер для зчитування даних
 private SearchDialog searchDialog;         // діалогове вікно пошуку інформації
 
 private final Font strikeFont;                             // закреслений шрифт
 private boolean reactOnChange = true;                       // допоміжна змінна
 
 private final ArrayList<String> row                   = new ArrayList<>();
-private final ArrayList<Integer> ufopediaIndexes      = new ArrayList<>();
 private final ArrayList<UFOPediaBlock> ufopediaBlocks = new ArrayList<>();
 
 public static final ArrayList<Integer> editedList = new ArrayList<>();
@@ -168,7 +166,7 @@ inputFile = fileOpen.getSelectedFile();
 try {
 
 // Обробка "сирих" байт *.exe файлу
-new UFOPediaProcessor(inputFile, ufopediaBlocks).process();
+new UFOPediaProcessor().read(inputFile, ufopediaBlocks);
 
 // Обробка оброблених блоків НЛОпедії в циклі
 for (int z = 0; z < ufopediaBlocks.size(); z++)
@@ -287,60 +285,16 @@ updateAppTitle();
 
 private void saveMtFile() {
 
-String tmp;            // допоміжна змінна
-byte[] data;           // масив даних
-int pos = 0;           // позиція обробки тексту
-UFOPediaBlock block;   // блок НЛОпедії
+outputFile = fileOpen.getSelectedFile();
 
 try {
 
-outputFile = fileOpen.getSelectedFile();
-File ufopediaDesc = new File(inputFile.getAbsolutePath() + "I");
-
-// Ініціалізація буферу для запису даних
-buffer = ByteBuffer.allocate((ufopediaBlocks.size() + 1) * 4);
-buffer.order(ByteOrder.LITTLE_ENDIAN);
-buffer.putInt(pos);
-
-// Запис НЛОпедії та файлу-дескриптора
-try (FileOutputStream pediaF = new FileOutputStream(outputFile, false);
-     FileOutputStream pediaD = new FileOutputStream(ufopediaDesc, false)) {
-
-// Обробка текстових блоків у циклі
-for (int z = 0; z < ufopediaBlocks.size(); z++) {
-    
-    block = ufopediaBlocks.get(z);
-    tmp = (String) tbl_main.getValueAt(z, 1);
-    tmp = Utils.replaceUnusedChars(tmp);
-    block.setTitle(tmp);
-    tmp = (String) tbl_main.getValueAt(z, 2);
-    tmp = Utils.replaceUnusedChars(tmp);
-    block.setDescription(tmp);
-    
-    data = block.getRawData();
-    pos += data.length;
-    
-    pediaF.write(data);
-    buffer.putInt(pos);
-    
-}
-
-// Запис даних у файл-дескриптор
-pediaD.write(buffer.array());
-
-}
-
-// ............................................................................
-
+new UFOPediaProcessor().write(outputFile, tbl_main, ufopediaBlocks);
 dataWasChanged = false;
-ufopediaIndexes.clear();
-ufopediaBlocks.clear();
 updateAppTitle();
 
 showMessageDialog(this, "Файл " + outputFile.getName() + " успішно збережено",
-                        "Повідомлення", INFORMATION_MESSAGE);
-
-}
+                        "Повідомлення", INFORMATION_MESSAGE); }
 
 // ............................................................................
 
