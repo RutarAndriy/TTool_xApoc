@@ -89,6 +89,7 @@ lbl_info.setText("Знайдено: " + findArray.size() + " результат�
 
 if (!findArray.isEmpty()) { findIndex = 0;
                             selectResult(findIndex); }
+else                      { lbl_num.setText("0/0");  }
 
 updateAllComponentsState();
 
