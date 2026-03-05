@@ -410,67 +410,59 @@ else { tableModel.addColumn("№");
 
 private void finalizeNewTable (boolean isUFOPedia) {
 
-TableColumn tColumn;
-int prefW, totalW = 0;
-CellRender cellRender = new CellRender();
-cellRender.setHorizontalAlignment(SwingConstants.CENTER);
+CellRender centerRender = new CellRender();
+centerRender.setHorizontalAlignment(SwingConstants.CENTER);
 
-// ............................................................................
-// Відкрито *.mt файл
-
-if (isUFOPedia) {
-
-tColumn = tbl_main.getColumnModel().getColumn(0);
-tColumn.setCellRenderer(cellRender);
-tColumn.setPreferredWidth(prefW = 45);
-tColumn.setResizable(false);
-totalW += prefW;
-
-for (int z = 1; z < tbl_main.getColumnCount(); z++) {
-    tColumn = tbl_main.getColumnModel().getColumn(z);
-    tColumn.setCellRenderer(new CellRender());
-    if (z < tbl_main.getColumnCount() - 1)
-         { tColumn.setPreferredWidth(prefW = 175);  
-           totalW += prefW; }
-    else { prefW  = sp_table.getViewport().getWidth() - totalW;
-           prefW -= sp_table.getVerticalScrollBar().getPreferredSize().width;
-           tColumn.setPreferredWidth(prefW >= 175 ? prefW : 175); } }
-}
-
-// ............................................................................
-// Відкрито *.exe файл
-
-else {
-
-    tColumn = tbl_main.getColumnModel().getColumn(0);
-    tColumn.setCellRenderer(cellRender);
-    tColumn.setPreferredWidth(prefW = 45);
-    tColumn.setResizable(false);
-    totalW += prefW;
-
-    tColumn = tbl_main.getColumnModel().getColumn(1);
-    tColumn.setCellRenderer(cellRender);
-    tColumn.setPreferredWidth(prefW = 55);
-    tColumn.setResizable(false);
-    totalW += prefW;
-
-    tColumn = tbl_main.getColumnModel().getColumn(2);
-    tColumn.setCellRenderer(new CellRender());
-    prefW  = sp_table.getViewport().getWidth() - totalW;
-    prefW -= sp_table.getVerticalScrollBar().getPreferredSize().width;
-    tColumn.setPreferredWidth(prefW >= 175 ? prefW : 175);
-
-}
-
-// ............................................................................
+if (isUFOPedia) { setColumnParams(centerRender, 45, 175, 175); }
+else            { setColumnParams(centerRender, 45, 55,  175); }
 
 updateTableInfo();
+
+// ............................................................................
 
 mni_find.setEnabled(true);
 tableModel.addTableModelListener((TableModelEvent evt) -> {
     updateTableData(evt);
     updateAppTitle();
 });
+
+}
+
+// ============================================================================
+
+private void setColumnParams (CellRender render, int ... columnSizes) {
+
+TableColumn tColumn;
+boolean newRender, isResizable;
+boolean isExe = fileExt.toLowerCase().equals("exe");
+
+for (int z = 0; z < columnSizes.length; z++) {
+
+    newRender    = isExe ? z > 1 : z > 0;
+    isResizable  = isExe ? z > 1 : z > 0;
+    
+    tColumn = tbl_main.getColumnModel().getColumn(z);
+    tColumn.setCellRenderer(!newRender ? render : new CellRender());
+    tColumn.setPreferredWidth(columnSizes[z]);
+    tColumn.setResizable(isResizable);
+
+}
+
+// ............................................................................
+
+SwingUtilities.invokeLater(() -> {
+
+    int totalW = 0;
+    var cModel = tbl_main.getColumnModel();
+    int viewportW = sp_table.getViewport().getWidth();
+    
+    for (int q = 0; q < tbl_main.getColumnCount(); q++)
+        { totalW += cModel.getColumn(q).getPreferredWidth(); }
+    
+    if (totalW < viewportW)
+        { var lastColumn = cModel.getColumn(tbl_main.getColumnCount() - 1);
+          int prefW = viewportW - totalW + lastColumn.getPreferredWidth();
+          lastColumn.setPreferredWidth(prefW); } });
 
 }
 
