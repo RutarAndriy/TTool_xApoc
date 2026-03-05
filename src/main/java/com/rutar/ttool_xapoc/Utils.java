@@ -6,14 +6,16 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.filechooser.*;
 
-import static com.rutar.ttool_xapoc.TToolxApoc.*;
-
 // ............................................................................
 /// Корисні допоміжні методи
 /// @author Rutar_Andriy
 /// 19.02.2026
 
 public class Utils {
+
+// Домашня директорія користувача
+public static final File HOME_DIR = FileSystemView.getFileSystemView()
+                                                  .getHomeDirectory();
 
 // ============================================================================
 /// Виділення клітинок у таблиці

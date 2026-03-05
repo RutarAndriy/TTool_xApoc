@@ -1,13 +1,12 @@
 package com.rutar.ttool_xapoc;
 
-import static com.rutar.ttool_xapoc.TToolxApoc.editedList;
-import static com.rutar.ttool_xapoc.TToolxApoc.textBlocks;
 import java.io.*;
 import java.util.*;
+import javax.swing.*;
 import java.nio.file.*;
-import static javax.swing.JOptionPane.INFORMATION_MESSAGE;
-import static javax.swing.JOptionPane.showMessageDialog;
-import javax.swing.JTable;
+import javax.swing.table.*;
+
+import static com.rutar.ttool_xapoc.TToolxApoc.*;
 
 // ............................................................................
 /// Обробка "сирих" даних *.exe файлів
@@ -45,14 +44,22 @@ private final String tacp4 =
 // ============================================================================
 /// Читання "сирих" байт *.exe файлу
 /// @param inputFile вхідний *.exe файл
-/// @param textBlocks масив текстових блоків
 /// @param filterRows ручне фільтрування рядків
 /// @param strictRules строгі правила фільтрування
+/// @param table головна таблиця із даними
 /// @throws IOException якщо відбулася помилка обробки файлу
 
 public void read (File inputFile,
-                  ArrayList<TextBlock> textBlocks,
-                  boolean filterRows, boolean strictRules) throws IOException {
+                  boolean filterRows,
+                  boolean strictRules,
+                  JTable table) throws IOException {
+
+// Доступ до моделі даних головної таблиці
+DefaultTableModel tModel = (DefaultTableModel) table.getModel();
+
+// Очищення попередніх даних
+textBlocks.clear();
+editedList.clear();
 
 // Зчитування всіх байт
 allBytes = Files.readAllBytes(inputFile.toPath());
@@ -102,19 +109,31 @@ for (int z = 0; z < allBytes.length; z++) {
     else { resetExeData(); }
 
 }
+
+// ............................................................................
+// Додавання всіх знайдених текстових блоків до таблиці
+
+int id = 0;
+String tmp;
+ArrayList<String> row = new ArrayList<>();
+
+for (TextBlock tBlock : textBlocks)
+    { tmp = CodeTable.decodeText(tBlock.getRawData());
+      row.clear();
+      row.add(String.valueOf(++id));
+      row.add(tmp.length() + "/" + tBlock.getRawData().length);
+      row.add(tmp);
+      tModel.addRow(row.toArray(String[]::new)); }
+
 }
 
 // ============================================================================
 /// Запис "сирих" байт *.exe файлу
 /// @param outputFile вихідний *.exe файл
-/// @param table таблиця із даними
-/// @param textBlocks масив текстових блоків
-/// @param editedList масив індексів змінених рядків
+/// @param table головна таблиця із даними
 /// @throws IOException якщо відбулася помилка обробки файлу
 
-public void write (File outputFile, JTable table,
-                   ArrayList<TextBlock> textBlocks,
-                   ArrayList<Integer> editedList) throws IOException {
+public void write (File outputFile, JTable table) throws IOException {
 
 String tmp; // допоміжна змінна
 

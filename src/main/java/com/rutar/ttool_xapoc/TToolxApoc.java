@@ -14,7 +14,6 @@ import java.nio.charset.*;
 import javax.swing.event.*;
 import javax.swing.table.*;
 import com.formdev.flatlaf.*;
-import javax.swing.filechooser.*;
 import com.rutar.ua_translator.*;
 import com.formdev.flatlaf.themes.*;
 
@@ -35,32 +34,26 @@ private final JFileChooser fileOpen;           // відкривання/збе�
 private final JFileChooser fntCompile;                  // компілювання шрифтів
 private final JFileChooser fntDecompile;              // декомпілювання шрифтів
 
+private File tmpFile;                                       // допоміжна змінна
 private String appDescription;                                 // опис програми
 private DefaultTableModel tableModel;              // стандартна модель таблиці
 
-private boolean dataWasChanged;                // якщо true - дані були змінені
-
-private File tmpFile;                                       // допоміжна змінна
-private SearchDialog searchDialog;         // діалогове вікно пошуку інформації
-
-private final Font strikeFont;                             // закреслений шрифт
+private boolean dataWasChanged = false;        // якщо true - дані були змінені
 private boolean reactOnChange = true;                       // допоміжна змінна
 
-private final ArrayList<String> row                   = new ArrayList<>();
-private final ArrayList<UFOPediaBlock> ufopediaBlocks = new ArrayList<>();
-
-public static final ArrayList<Integer> editedList = new ArrayList<>();
-public static final ArrayList<TextBlock> textBlocks = new ArrayList<>();
+private final Font strikeFont;                             // закреслений шрифт
 
 // ............................................................................
 
+public static final ArrayList<Integer> editedList
+              = new ArrayList<>();            // масив індексів змінених рядків
+public static final ArrayList<TextBlock> textBlocks
+              = new ArrayList<>();                    // масив текстових блоків
+public static final ArrayList<UFOPediaBlock> ufopediaBlocks
+              = new ArrayList<>();                     // масив блоків НЛОпедії
+
 public static String fileExt;                    // розширення відкритого файлу
-
-// Домашня директорія користувача
-public static final File HOME_DIR = FileSystemView.getFileSystemView()
-                                                  .getHomeDirectory();
-
-public static boolean debug = true;  // якщо true - увімк. режим налагоджування
+public static boolean debug = false; // якщо true - увімк. режим налагоджування
 
 // ============================================================================
 /// Конструктор за замовчуванням
@@ -160,26 +153,9 @@ dataWasChanged = false;
 
 inputFile = fileOpen.getSelectedFile();
 
-try {
-
 // Читання файлів НЛОпедії
-new UFOPediaProcessor().read(inputFile, ufopediaBlocks);
-
-// Обробка оброблених блоків НЛОпедії в циклі
-for (int z = 0; z < ufopediaBlocks.size(); z++)
-    { // Отримання блоку даних
-      var block = ufopediaBlocks.get(z);
-      // Парсинг блоку даних
-      row.clear();
-      row.add(String.valueOf(z + 1));
-      row.add(block.getTitle());
-      row.add(block.getDescription());
-      // Додавання даних у таблицю
-      tableModel.addRow(row.toArray(String[]::new)); }
-
-finalizeNewTable(true);
-
-}
+try { new UFOPediaProcessor().read(inputFile, tbl_main);
+      finalizeNewTable(true); }
 
 // ............................................................................
 
@@ -193,43 +169,18 @@ catch (IOException e)
 
 private void openExeFile() {
 
-// Очищення попередніх даних
-textBlocks.clear();
-editedList.clear();
+prepareNewTable(false);
 dataWasChanged = false;
 
-prepareNewTable(false);
 inputFile = fileOpen.getSelectedFile();
-
-// ............................................................................
-/// Зчитування *.exe файлів, як набору байтових даних
-
-try {
 
 // Вимкнення фільтрування рядків
 boolean filterRows  = !mni_filterRows .getFont().equals(strikeFont);
 boolean strictRules = !mni_strictRules.getFont().equals(strikeFont);
 
 // Читання "сирих" байт *.exe файлу
-new ExeProcessor().read(inputFile, textBlocks, filterRows, strictRules);
-
-// ............................................................................
-// Додавання всіх знайдених текстових блоків до таблиці
-
-int id = 0;
-String tmp;
-
-for (TextBlock tBlock : textBlocks)
-    { tmp = CodeTable.decodeText(tBlock.getRawData());
-      row.clear();
-      row.add(String.valueOf(++id));
-      row.add(tmp.length() + "/" + tBlock.getRawData().length);
-      row.add(tmp);
-      tableModel.addRow(row.toArray(String[]::new)); }
-
-finalizeNewTable(false);
-
-}
+try { new ExeProcessor().read(inputFile, filterRows, strictRules, tbl_main);
+      finalizeNewTable(false); }
 
 // ............................................................................
 
@@ -286,7 +237,7 @@ outputFile = fileOpen.getSelectedFile();
 
 try {
 
-new UFOPediaProcessor().write(outputFile, tbl_main, ufopediaBlocks);
+new UFOPediaProcessor().write(outputFile, tbl_main);
 dataWasChanged = false;
 updateAppTitle();
 
@@ -309,7 +260,7 @@ outputFile = fileOpen.getSelectedFile();
 
 try {
 
-new ExeProcessor().write(outputFile, tbl_main, textBlocks, editedList);
+new ExeProcessor().write(outputFile, tbl_main);
 dataWasChanged = false;
 updateAppTitle();
 
@@ -375,8 +326,7 @@ showMessageDialog(this, pane, "Про програму", INFORMATION_MESSAGE);
 /// Відображення вікна пошуку інформації
 
 private void showSearchDialog()
-    { searchDialog = new SearchDialog(this);   
-      searchDialog.setVisible(true); }
+    { new SearchDialog(this).setVisible(true); }
 
 // ============================================================================
 /// Відображення вікна підтвердження виходу
@@ -403,11 +353,11 @@ if (answer == YES_OPTION) { System.exit(0); }
 
 private void showDecompileFontDialog() {
 
-int result = fntDecompile.showOpenDialog(this);
-if (result != JFileChooser.APPROVE_OPTION) { return; }
+    int result = fntDecompile.showOpenDialog(this);
+    if (result != JFileChooser.APPROVE_OPTION) { return; }
 
-inputFile = fntDecompile.getSelectedFile();
-new FontProcessor(this, inputFile).decompileFont();
+    inputFile = fntDecompile.getSelectedFile();
+    new FontProcessor(this, inputFile).decompileFont();
 
 }
 
@@ -416,14 +366,14 @@ new FontProcessor(this, inputFile).decompileFont();
 
 private void showCompileFontDialog() {
 
-tmpFile = Utils.getLastDir(fntDecompile);
-if (tmpFile != null) { fntCompile.setCurrentDirectory(tmpFile); }
+    tmpFile = Utils.getLastDir(fntDecompile);
+    if (tmpFile != null) { fntCompile.setCurrentDirectory(tmpFile); }
 
-int result = fntCompile.showOpenDialog(this);
-if (result != JFileChooser.APPROVE_OPTION) { return; }
+    int result = fntCompile.showOpenDialog(this);
+    if (result != JFileChooser.APPROVE_OPTION) { return; }
 
-inputFile = fntCompile.getSelectedFile();
-new FontProcessor(this, inputFile).compileFont();
+    inputFile = fntCompile.getSelectedFile();
+    new FontProcessor(this, inputFile).compileFont();
 
 }
 

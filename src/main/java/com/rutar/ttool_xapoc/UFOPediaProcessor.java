@@ -5,6 +5,9 @@ import java.nio.*;
 import java.util.*;
 import javax.swing.*;
 import java.nio.file.*;
+import javax.swing.table.*;
+
+import static com.rutar.ttool_xapoc.TToolxApoc.*;
 
 // ............................................................................
 /// Обробка файлів НЛОпедії
@@ -16,23 +19,23 @@ public class UFOPediaProcessor {
 private File mainFile;                                          // вхідний файл
 private File descFile;                                       // файл-дескриптор
 private ByteBuffer buffer;                                             // буфер
-private ArrayList<UFOPediaBlock> ufopediaBlocks;              // блоки НЛОпедії
 
 private final ArrayList<Integer> indexes = new ArrayList<>();        // індекси
 
 // ============================================================================
 /// Читання файлів НЛОпедії (*.MT та *.MTI)
 /// @param inputFile вхідний файл
-/// @param blocks масив блоків НЛОпедії
+/// @param table головна таблиця із даними
 /// @throws IOException якщо відбулася помилка читання файлів
 
-public void read (File inputFile,
-                  ArrayList<UFOPediaBlock> blocks) throws IOException {
+public void read (File inputFile, JTable table) throws IOException {
 
 // Ініціалізація вхідних файлів
 mainFile = inputFile;
 descFile = new File(mainFile.getAbsolutePath() + "I");
-ufopediaBlocks = blocks;
+
+// Доступ до моделі даних головної таблиці
+DefaultTableModel tModel = (DefaultTableModel) table.getModel();
 
 // Очищення попередніх даних
 ufopediaBlocks.clear();
@@ -55,22 +58,33 @@ for (int z = 0; z < indexes.size()-1; z++)
       var block = new UFOPediaBlock(Arrays.copyOfRange(mainBytes, from, to));
       ufopediaBlocks.add(block); }
 
+ArrayList<String> row = new ArrayList<>();
+
+// Обробка оброблених блоків НЛОпедії в циклі
+for (int z = 0; z < ufopediaBlocks.size(); z++)
+    { // Отримання блоку даних
+      var block = ufopediaBlocks.get(z);
+      // Парсинг блоку даних
+      row.clear();
+      row.add(String.valueOf(z + 1));
+      row.add(block.getTitle());
+      row.add(block.getDescription());
+      // Додавання даних у таблицю
+      tModel.addRow(row.toArray(String[]::new)); }
+
 }
 
 // ============================================================================
 /// Запис файлів НЛОпедії (*.MT та *.MTI)
 /// @param outputFile вихідний файл
-/// @param table таблиця із даними
-/// @param blocks масив блоків НЛОпедії
+/// @param table головна таблиця із даними
 /// @throws IOException якщо відбулася помилка запису файлів
 
-public void write (File outputFile, JTable table,
-                   ArrayList<UFOPediaBlock> blocks) throws IOException {
+public void write (File outputFile, JTable table) throws IOException {
 
 // Ініціалізація вихідних файлів
 mainFile = outputFile;
 descFile = new File(mainFile.getAbsolutePath() + "I");
-ufopediaBlocks = blocks;
 
 // Ініціалізація буферу для запису даних
 buffer = ByteBuffer.allocate((ufopediaBlocks.size() + 1) * 4);
