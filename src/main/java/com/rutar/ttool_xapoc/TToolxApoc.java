@@ -3,7 +3,6 @@ package com.rutar.ttool_xapoc;
 import java.io.*;
 import java.awt.*;
 import java.net.*;
-import java.nio.*;
 import java.util.*;
 import javax.swing.*;
 import java.awt.font.*;
@@ -42,8 +41,6 @@ private DefaultTableModel tableModel;              // стандартна мо�
 private boolean dataWasChanged;                // якщо true - дані були змінені
 
 private File tmpFile;                                       // допоміжна змінна
-private byte[] allBytes;                                   // всі зчитані байти
-
 private SearchDialog searchDialog;         // діалогове вікно пошуку інформації
 
 private final Font strikeFont;                             // закреслений шрифт
@@ -165,7 +162,7 @@ inputFile = fileOpen.getSelectedFile();
 
 try {
 
-// Обробка "сирих" байт *.exe файлу
+// Читання файлів НЛОпедії
 new UFOPediaProcessor().read(inputFile, ufopediaBlocks);
 
 // Обробка оброблених блоків НЛОпедії в циклі
@@ -213,8 +210,8 @@ try {
 boolean filterRows  = !mni_filterRows .getFont().equals(strikeFont);
 boolean strictRules = !mni_strictRules.getFont().equals(strikeFont);
 
-// Обробка "сирих" байт *.exe файлу
-new ExeProcessor(inputFile, textBlocks, filterRows, strictRules).process();
+// Читання "сирих" байт *.exe файлу
+new ExeProcessor().read(inputFile, textBlocks, filterRows, strictRules);
 
 // ............................................................................
 // Додавання всіх знайдених текстових блоків до таблиці
@@ -308,67 +305,20 @@ catch (HeadlessException | IOException _)
 
 private void saveExeFile() {
 
-String tmp;   // допоміжна змінна
-
-// Обробка всіх текстових блоків
-for (Integer edited : editedList) {
-
-    TextBlock block = textBlocks.get(edited);
-    int blockSize = block.getRawData().length;
-    tmp = (String) tbl_main.getValueAt(edited, 2);
-    tmp = Utils.replaceUnusedChars(tmp);
-    byte[] bytes = new byte[blockSize];
-    byte[] encoded = CodeTable.encodeText(tmp);
-    
-    // Якщо довжини старого і нового текстів співпадають - все ок
-    if (encoded.length == bytes.length) { bytes = encoded; }
-    
-    // Якщо довжини не співпадають - заповнюємо вільне місце пробілами
-    else {
-        
-        for (int z = 0; z < bytes.length; z++) {
-            
-            if (z < encoded.length) { bytes[z] = encoded[z]; }
-            else                    { bytes[z] = 0x20; }
-            
-        }
-        
-        // Оновлення даних у таблиці
-        reactOnChange = false;
-        tbl_main.setValueAt(bytes.length + "/" + bytes.length, edited, 1);
-        tbl_main.setValueAt(CodeTable.decodeText(bytes), edited, 2);
-        reactOnChange = true;
-        
-        // Оновлення дних текстового блоку
-        textBlocks.set(edited, new TextBlock(block.getPosition(), bytes));
-        
-    }
-    
-    // Заміна оригінальних байт на оброблені
-    System.arraycopy(bytes, 0, allBytes, block.getPosition(), bytes.length);
-    
-}
-
-// Отримання назви вихідного файлу
 outputFile = fileOpen.getSelectedFile();
 
-// Запис результату в файл
-try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-    
-fos.write(allBytes);
+try {
 
-editedList.clear();
-tbl_main.repaint();
+new ExeProcessor().write(outputFile, tbl_main, textBlocks, editedList);
 dataWasChanged = false;
 updateAppTitle();
 
 showMessageDialog(this, "Файл " + outputFile.getName() + " успішно збережено",
-                        "Повідомлення", INFORMATION_MESSAGE);
-}
+                        "Повідомлення", INFORMATION_MESSAGE); }
 
 // ............................................................................
 
-catch (Exception e)
+catch (HeadlessException | IOException _)
     { showMessageDialog(this, "При збереженні файлу відбулася критична "
                             + "помилка", "Помилка", ERROR_MESSAGE); }
 }

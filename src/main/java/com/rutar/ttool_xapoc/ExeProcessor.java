@@ -1,8 +1,13 @@
 package com.rutar.ttool_xapoc;
 
+import static com.rutar.ttool_xapoc.TToolxApoc.editedList;
+import static com.rutar.ttool_xapoc.TToolxApoc.textBlocks;
 import java.io.*;
 import java.util.*;
 import java.nio.file.*;
+import static javax.swing.JOptionPane.INFORMATION_MESSAGE;
+import static javax.swing.JOptionPane.showMessageDialog;
+import javax.swing.JTable;
 
 // ............................................................................
 /// Обробка "сирих" даних *.exe файлів
@@ -15,9 +20,7 @@ private Range range;                            // допустимий ряд �
 private int pos = -1;           // позиція читання даних, якщо (-1) - не задана
 private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-private final File inputFile;                                   // вхідний файл
-private final ArrayList<TextBlock> textBlocks;        // масив текстових блоків
-private final boolean filterRows, strictRules;          // правила фільтрування
+private static byte[] allBytes;                            // усі зчитані байти
 
 // ============================================================================
 // Задання допустимих діапазонів обробки даних, 
@@ -40,27 +43,19 @@ private final String tacp4 =
     "3001603..3002764,3002912..3012793,3014742..3077512";
 
 // ============================================================================
-// Конструктор за замовчуванням
-
-public ExeProcessor (File inputFile,
-                     ArrayList<TextBlock> textBlocks,
-                     boolean filterRows, boolean strictRules) {
-
-    this.inputFile   = inputFile;
-    this.textBlocks  = textBlocks;
-    this.filterRows  = filterRows;
-    this.strictRules = strictRules;
-
-}
-
-// ============================================================================
-/// Обробка "сирих" байт *.exe файлу
+/// Читання "сирих" байт *.exe файлу
+/// @param inputFile вхідний *.exe файл
+/// @param textBlocks масив текстових блоків
+/// @param filterRows ручне фільтрування рядків
+/// @param strictRules строгі правила фільтрування
 /// @throws IOException якщо відбулася помилка обробки файлу
 
-public void process() throws IOException {
+public void read (File inputFile,
+                  ArrayList<TextBlock> textBlocks,
+                  boolean filterRows, boolean strictRules) throws IOException {
 
 // Зчитування всіх байт
-byte[] allBytes = Files.readAllBytes(inputFile.toPath());
+allBytes = Files.readAllBytes(inputFile.toPath());
 
 // Ручне задавання діапазонів, у межах яких є дані для обробки
 switch (inputFile.getName())
@@ -107,6 +102,50 @@ for (int z = 0; z < allBytes.length; z++) {
     else { resetExeData(); }
 
 }
+}
+
+// ============================================================================
+/// Запис "сирих" байт *.exe файлу
+/// @param outputFile вихідний *.exe файл
+/// @param table таблиця із даними
+/// @param textBlocks масив текстових блоків
+/// @param editedList масив індексів змінених рядків
+/// @throws IOException якщо відбулася помилка обробки файлу
+
+public void write (File outputFile, JTable table,
+                   ArrayList<TextBlock> textBlocks,
+                   ArrayList<Integer> editedList) throws IOException {
+
+String tmp; // допоміжна змінна
+
+// Обробка всіх редагованих текстових блоків
+for (Integer edited : editedList) {
+
+    TextBlock block = textBlocks.get(edited);
+    int blockSize = block.getRawData().length;
+    tmp = (String) table.getValueAt(edited, 2);
+    tmp = Utils.replaceUnusedChars(tmp);
+    byte[] bytes = new byte[blockSize];
+    byte[] encoded = CodeTable.encodeText(tmp);
+    
+    // Якщо довжини старого і нового текстів співпадають - все ок
+    if (encoded.length == bytes.length) { bytes = encoded; }
+    
+    // Якщо довжини не співпадають - заповнюємо вільне місце пробілами
+    else { for (int z = 0; z < bytes.length; z++)
+               { bytes[z] = z < encoded.length ? encoded[z] : 0x20; }
+           // Оновлення дних текстового блоку
+           textBlocks.set(edited, new TextBlock(block.getPosition(), bytes)); }
+    
+    // Заміна оригінальних байт на оброблені
+    System.arraycopy(bytes, 0, allBytes, block.getPosition(), bytes.length);
+    
+}
+
+// Запис результату в файл
+try (FileOutputStream fos = new FileOutputStream(outputFile))
+    { fos.write(allBytes); }
+
 }
 
 // ============================================================================

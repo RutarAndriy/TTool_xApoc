@@ -23,7 +23,7 @@ private final ArrayList<Integer> indexes = new ArrayList<>();        // інде
 // ============================================================================
 /// Читання файлів НЛОпедії (*.MT та *.MTI)
 /// @param inputFile вхідний файл
-/// @param blocks блоки НЛОпедії
+/// @param blocks масив блоків НЛОпедії
 /// @throws IOException якщо відбулася помилка читання файлів
 
 public void read (File inputFile,
@@ -61,7 +61,7 @@ for (int z = 0; z < indexes.size()-1; z++)
 /// Запис файлів НЛОпедії (*.MT та *.MTI)
 /// @param outputFile вихідний файл
 /// @param table таблиця із даними
-/// @param blocks блоки НЛОпедії
+/// @param blocks масив блоків НЛОпедії
 /// @throws IOException якщо відбулася помилка запису файлів
 
 public void write (File outputFile, JTable table,
