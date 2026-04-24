@@ -103,9 +103,11 @@ public static void main (String args[]) {
     
     // ........................................................................
     
-    EventQueue.invokeLater(() -> {
-        new TToolxApoc().setVisible(true);
-    });
+    SwingUtilities.invokeLater(() ->
+      { var window = new TToolxApoc();
+        window.setVisible(true);
+        SwingUtilities.invokeLater(() ->
+          { window.setMinimumSize(window.getSize()); }); });
 }
 
 // ============================================================================
@@ -117,9 +119,9 @@ private void showOpenDialog() {
 if (dataWasChanged) { 
 
 String saveDataQuestion = """
-    У відкритому файлі присутні зміни. При відкриванні
-    нового файлу вони будуть втрачені. Бажаєте продовжити?
-    """;
+  У відкритому файлі присутні зміни. При відкриванні
+  нового файлу вони будуть втрачені. Бажаєте продовжити?
+  """;
 
 int answer = showConfirmDialog(this, saveDataQuestion,
                               "Повідомлення", YES_NO_OPTION);
@@ -160,8 +162,9 @@ try { new UFOPediaProcessor().read(inputFile, tbl_main);
 // ............................................................................
 
 catch (IOException e)
-    { showMessageDialog(this, "При обробленні файлу відбулася критична " +
-                              "помилка", "Помилка", ERROR_MESSAGE); }
+  { showMessageDialog(this, "При обробленні файлу відбулася критична " +
+                            "помилка", "Помилка", ERROR_MESSAGE); }
+
 }
 
 // ============================================================================
@@ -185,8 +188,9 @@ try { new ExeProcessor().read(inputFile, filterRows, strictRules, tbl_main);
 // ............................................................................
 
 catch (IOException _)
-    { showMessageDialog(this, "При відкриванні файлу відбулася критична "
-                            + "помилка", "Помилка", ERROR_MESSAGE); }
+  { showMessageDialog(this, "При відкриванні файлу відбулася критична "
+                          + "помилка", "Помилка", ERROR_MESSAGE); }
+
 }
 
 // ============================================================================
@@ -197,23 +201,23 @@ private void showSaveDialog() {
 // Перевірка, чи всі введені строки є допустимими (лише для *.exe файлів)
 if (fileExt.toLowerCase().equals("exe")) {
 
-    for (int z = 0; z < editedList.size(); z++) {
+  for (int z = 0; z < editedList.size(); z++) {
 
-        int id = editedList.get(z);
-        
-        String editedText = (String) tbl_main.getValueAt(id, 2);
-        
-        int oldLength = textBlocks.get(id).getRawData().length;
-        int newLength = CodeTable.encodeText(editedText).length;
-        
-        if (newLength > oldLength) {
-            Utils.selectCell(tbl_main, 2, id);
-            int delta = newLength - oldLength;
-            String msg = "Довжина рядка №%d перевищує довжину%n"
-                       + "оригінального рядка на %d символ/ів";
-            showMessageDialog(this, msg.formatted(id+1, delta), "Помилка", 0);
-            return;
-        } } }
+    int id = editedList.get(z);
+
+    String editedText = (String) tbl_main.getValueAt(id, 2);
+
+    int oldLength = textBlocks.get(id).getRawData().length;
+    int newLength = CodeTable.encodeText(editedText).length;
+
+    if (newLength > oldLength) {
+      Utils.selectCell(tbl_main, 2, id);
+      int delta = newLength - oldLength;
+      String msg = "Довжина рядка №%d перевищує довжину%n"
+                 + "оригінального рядка на %d символ/ів";
+      showMessageDialog(this, msg.formatted(id+1, delta), "Помилка", 0);
+      return;
+    } } }
 
 // ............................................................................
 
@@ -247,8 +251,9 @@ showMessageDialog(this, "Файл " + outputFile.getName() + " успішно з
 // ............................................................................
 
 catch (HeadlessException | IOException _)
-    { showMessageDialog(this, "При збереженні файлу відбулася критична "
-                            + "помилка", "Помилка", ERROR_MESSAGE); }
+  { showMessageDialog(this, "При збереженні файлу відбулася критична "
+                          + "помилка", "Помилка", ERROR_MESSAGE); }
+
 }
 
 // ============================================================================
@@ -270,8 +275,9 @@ showMessageDialog(this, "Файл " + outputFile.getName() + " успішно з
 // ............................................................................
 
 catch (HeadlessException | IOException _)
-    { showMessageDialog(this, "При збереженні файлу відбулася критична "
-                            + "помилка", "Помилка", ERROR_MESSAGE); }
+  { showMessageDialog(this, "При збереженні файлу відбулася критична "
+                          + "помилка", "Помилка", ERROR_MESSAGE); }
+
 }
 
 // ============================================================================
@@ -312,10 +318,10 @@ pane.setEditable(false);
 pane.setFocusable(false);
 
 pane.addHyperlinkListener((HyperlinkEvent e) -> {
-    if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
-        try { Desktop.getDesktop().browse(e.getURL().toURI()); }
-        catch (IOException | URISyntaxException _) { }
-    }
+  if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+    try { Desktop.getDesktop().browse(e.getURL().toURI()); }
+    catch (IOException | URISyntaxException _) { }
+  }
 });
 
 showMessageDialog(this, pane, "Про програму", INFORMATION_MESSAGE);
@@ -326,7 +332,7 @@ showMessageDialog(this, pane, "Про програму", INFORMATION_MESSAGE);
 /// Відображення вікна пошуку інформації
 
 private void showSearchDialog()
-    { new SearchDialog(this).setVisible(true); }
+  { new SearchDialog(this).setVisible(true); }
 
 // ============================================================================
 /// Відображення вікна підтвердження виходу
@@ -337,9 +343,9 @@ private void showExitDialog() {
 if (!dataWasChanged) { System.exit(0); }
 
 String saveDataQuestion = """
-    Ви бажаєте вийти з програми?
-    Усі незбережені дані буде втрачено
-    """;
+  Ви бажаєте вийти з програми?
+  Усі незбережені дані буде втрачено
+  """;
 
 int answer = showConfirmDialog(this, saveDataQuestion,
                               "Підтвердження виходу", YES_NO_OPTION);
@@ -358,7 +364,6 @@ private void showDecompileFontDialog() {
 
     inputFile = fntDecompile.getSelectedFile();
     new FontProcessor(this, inputFile).decompileFont();
-
 }
 
 // ============================================================================
@@ -374,7 +379,6 @@ private void showCompileFontDialog() {
 
     inputFile = fntCompile.getSelectedFile();
     new FontProcessor(this, inputFile).compileFont();
-
 }
 
 // ============================================================================
@@ -389,19 +393,20 @@ sp_table.getVerticalScrollBar().setValue(0);
 tableModel = new DefaultTableModel() {
     @Override
     public boolean isCellEditable (int row, int column)
-        { if (fileExt.toLowerCase().equals("exe")) { return column >= 2; }
-          else                                     { return column >= 1; } }
+      { if (fileExt.toLowerCase().equals("exe")) { return column >= 2; }
+        else                                     { return column >= 1; } }
 };
 
 tbl_main.setModel(tableModel);
 
 if (isUFOPedia)
-     { tableModel.addColumn("№");
-       tableModel.addColumn("Заголовок");
-       tableModel.addColumn("Опис"); }
-else { tableModel.addColumn("№");
-       tableModel.addColumn("Розмір");
-       tableModel.addColumn("Текст для перекладу"); }
+  { tableModel.addColumn("№");
+    tableModel.addColumn("Заголовок");
+    tableModel.addColumn("Опис"); }
+else
+  { tableModel.addColumn("№");
+    tableModel.addColumn("Розмір");
+    tableModel.addColumn("Текст для перекладу"); }
 
 }
 
@@ -421,10 +426,9 @@ updateTableInfo();
 // ............................................................................
 
 mni_find.setEnabled(true);
-tableModel.addTableModelListener((TableModelEvent evt) -> {
-    updateTableData(evt);
-    updateAppTitle();
-});
+tableModel.addTableModelListener((TableModelEvent evt) ->
+  { updateTableData(evt);
+    updateAppTitle(); });
 
 }
 
@@ -438,13 +442,13 @@ boolean isExe = fileExt.toLowerCase().equals("exe");
 
 for (int z = 0; z < columnSizes.length; z++) {
 
-    newRender    = isExe ? z > 1 : z > 0;
-    isResizable  = isExe ? z > 1 : z > 0;
-    
-    tColumn = tbl_main.getColumnModel().getColumn(z);
-    tColumn.setCellRenderer(!newRender ? render : new CellRender());
-    tColumn.setPreferredWidth(columnSizes[z]);
-    tColumn.setResizable(isResizable);
+  newRender    = isExe ? z > 1 : z > 0;
+  isResizable  = isExe ? z > 1 : z > 0;
+
+  tColumn = tbl_main.getColumnModel().getColumn(z);
+  tColumn.setCellRenderer(!newRender ? render : new CellRender());
+  tColumn.setPreferredWidth(columnSizes[z]);
+  tColumn.setResizable(isResizable);
 
 }
 
@@ -452,17 +456,17 @@ for (int z = 0; z < columnSizes.length; z++) {
 
 SwingUtilities.invokeLater(() -> {
 
-    int totalW = 0;
-    var cModel = tbl_main.getColumnModel();
-    int viewportW = sp_table.getViewport().getWidth();
-    
-    for (int q = 0; q < tbl_main.getColumnCount(); q++)
-        { totalW += cModel.getColumn(q).getPreferredWidth(); }
-    
-    if (totalW < viewportW)
-        { var lastColumn = cModel.getColumn(tbl_main.getColumnCount() - 1);
-          int prefW = viewportW - totalW + lastColumn.getPreferredWidth();
-          lastColumn.setPreferredWidth(prefW); } });
+  int totalW = 0;
+  var cModel = tbl_main.getColumnModel();
+  int viewportW = sp_table.getViewport().getWidth();
+
+  for (int q = 0; q < tbl_main.getColumnCount(); q++)
+    { totalW += cModel.getColumn(q).getPreferredWidth(); }
+
+  if (totalW < viewportW)
+    { var lastColumn = cModel.getColumn(tbl_main.getColumnCount() - 1);
+      int prefW = viewportW - totalW + lastColumn.getPreferredWidth();
+      lastColumn.setPreferredWidth(prefW); } });
 
 }
 
@@ -488,7 +492,6 @@ private void updateTableData (TableModelEvent e) {
     reactOnChange = false;
     tbl_main.setValueAt(stat, rowId, 1);
     reactOnChange = true;
-
 }
 
 // ============================================================================
@@ -507,7 +510,6 @@ private void updateTableInfo() {
     tmp = tmp.substring(0, tmp.indexOf(":") + 1) + " "
                       + tableModel.getColumnCount();
     lbl_colCount.setText(tmp);
-    
 }
 
 // ============================================================================
@@ -540,7 +542,6 @@ private void initAppIcons() {
     setIconImages(appIcons); }
     
     catch (IOException _) { }
-    
 }
 
 // ============================================================================
@@ -549,232 +550,232 @@ private void initAppIcons() {
 /// перезапишеться редактором форм
 
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
+  // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+  private void initComponents() {
 
-        sp_table = new JScrollPane();
-        tbl_main = new JTable();
-        pnl_footer = new JPanel();
-        lbl_colCount = new JLabel();
-        lbl_rowCount = new JLabel();
-        mnb_main = new JMenuBar();
-        mn_file = new JMenu();
-        mni_open = new JMenuItem();
-        mni_save = new JMenuItem();
-        sep_one = new JPopupMenu.Separator();
-        mni_find = new JMenuItem();
-        sep_two = new JPopupMenu.Separator();
-        mni_exit = new JMenuItem();
-        mn_edit = new JMenu();
-        mni_fntDecompile = new JMenuItem();
-        mni_fntCompile = new JMenuItem();
-        sep_three = new JPopupMenu.Separator();
-        mni_filterRows = new JMenuItem();
-        mni_strictRules = new JMenuItem();
-        mn_info = new JMenu();
-        mni_about = new JMenuItem();
+    sp_table = new JScrollPane();
+    tbl_main = new JTable();
+    pnl_footer = new JPanel();
+    lbl_colCount = new JLabel();
+    lbl_rowCount = new JLabel();
+    mnb_main = new JMenuBar();
+    mn_file = new JMenu();
+    mni_open = new JMenuItem();
+    mni_save = new JMenuItem();
+    sep_one = new JPopupMenu.Separator();
+    mni_find = new JMenuItem();
+    sep_two = new JPopupMenu.Separator();
+    mni_exit = new JMenuItem();
+    mn_edit = new JMenu();
+    mni_fntDecompile = new JMenuItem();
+    mni_fntCompile = new JMenuItem();
+    sep_three = new JPopupMenu.Separator();
+    mni_filterRows = new JMenuItem();
+    mni_strictRules = new JMenuItem();
+    mn_info = new JMenu();
+    mni_about = new JMenuItem();
 
-        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-        setTitle("TTool_xApoc");
-        addWindowListener(new WindowAdapter() {
-            public void windowClosing(WindowEvent evt) {
-                onWindowClose(evt);
-            }
-        });
+    setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+    setTitle("TTool_xApoc");
+    addWindowListener(new WindowAdapter() {
+      public void windowClosing(WindowEvent evt) {
+        onWindowClose(evt);
+      }
+    });
 
-        tbl_main.setModel(new DefaultTableModel(
-            new Object [][] {
+    tbl_main.setModel(new DefaultTableModel(
+      new Object [][] {
 
-            },
-            new String [] {
+      },
+      new String [] {
 
-            }
-        ));
-        tbl_main.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        tbl_main.setAutoscrolls(false);
-        tbl_main.setIntercellSpacing(new Dimension(2, 2));
-        tbl_main.setRowSelectionAllowed(false);
-        tbl_main.setShowGrid(true);
-        tbl_main.getTableHeader().setReorderingAllowed(false);
-        tbl_main.addMouseListener(new MouseAdapter() {
-            public void mousePressed(MouseEvent evt) {
-                onTableClick(evt);
-            }
-        });
-        sp_table.setViewportView(tbl_main);
+      }
+    ));
+    tbl_main.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+    tbl_main.setAutoscrolls(false);
+    tbl_main.setIntercellSpacing(new Dimension(2, 2));
+    tbl_main.setRowSelectionAllowed(false);
+    tbl_main.setShowGrid(true);
+    tbl_main.getTableHeader().setReorderingAllowed(false);
+    tbl_main.addMouseListener(new MouseAdapter() {
+      public void mousePressed(MouseEvent evt) {
+        onTableClick(evt);
+      }
+    });
+    sp_table.setViewportView(tbl_main);
 
-        pnl_footer.setLayout(new FlowLayout(FlowLayout.CENTER, 50, 5));
+    pnl_footer.setLayout(new FlowLayout(FlowLayout.CENTER, 50, 5));
 
-        lbl_colCount.setText("Кількість стовбців: 0");
-        pnl_footer.add(lbl_colCount);
+    lbl_colCount.setText("Кількість стовбців: 0");
+    pnl_footer.add(lbl_colCount);
 
-        lbl_rowCount.setText("Кількість рядків: 0");
-        pnl_footer.add(lbl_rowCount);
+    lbl_rowCount.setText("Кількість рядків: 0");
+    pnl_footer.add(lbl_rowCount);
 
-        mn_file.setText("Файл");
+    mn_file.setText("Файл");
 
-        mni_open.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
-        mni_open.setText("Відкрити");
-        mni_open.setActionCommand("open");
-        mni_open.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                onMenuClick(evt);
-            }
-        });
-        mn_file.add(mni_open);
+    mni_open.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
+    mni_open.setText("Відкрити");
+    mni_open.setActionCommand("open");
+    mni_open.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        onMenuClick(evt);
+      }
+    });
+    mn_file.add(mni_open);
 
-        mni_save.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
-        mni_save.setText("Зберегти");
-        mni_save.setActionCommand("save");
-        mni_save.setEnabled(false);
-        mni_save.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                onMenuClick(evt);
-            }
-        });
-        mn_file.add(mni_save);
-        mn_file.add(sep_one);
+    mni_save.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
+    mni_save.setText("Зберегти");
+    mni_save.setActionCommand("save");
+    mni_save.setEnabled(false);
+    mni_save.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        onMenuClick(evt);
+      }
+    });
+    mn_file.add(mni_save);
+    mn_file.add(sep_one);
 
-        mni_find.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
-        mni_find.setText("Пошук");
-        mni_find.setActionCommand("find");
-        mni_find.setEnabled(false);
-        mni_find.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                onMenuClick(evt);
-            }
-        });
-        mn_file.add(mni_find);
-        mn_file.add(sep_two);
+    mni_find.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK));
+    mni_find.setText("Пошук");
+    mni_find.setActionCommand("find");
+    mni_find.setEnabled(false);
+    mni_find.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        onMenuClick(evt);
+      }
+    });
+    mn_file.add(mni_find);
+    mn_file.add(sep_two);
 
-        mni_exit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK));
-        mni_exit.setText("Вихід");
-        mni_exit.setActionCommand("exit");
-        mni_exit.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                onMenuClick(evt);
-            }
-        });
-        mn_file.add(mni_exit);
+    mni_exit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK));
+    mni_exit.setText("Вихід");
+    mni_exit.setActionCommand("exit");
+    mni_exit.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        onMenuClick(evt);
+      }
+    });
+    mn_file.add(mni_exit);
 
-        mnb_main.add(mn_file);
+    mnb_main.add(mn_file);
 
-        mn_edit.setText("Правка");
+    mn_edit.setText("Правка");
 
-        mni_fntDecompile.setText("Розпакувати шрифт");
-        mni_fntDecompile.setActionCommand("decompileFont");
-        mni_fntDecompile.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                onMenuClick(evt);
-            }
-        });
-        mn_edit.add(mni_fntDecompile);
+    mni_fntDecompile.setText("Розпакувати шрифт");
+    mni_fntDecompile.setActionCommand("decompileFont");
+    mni_fntDecompile.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        onMenuClick(evt);
+      }
+    });
+    mn_edit.add(mni_fntDecompile);
 
-        mni_fntCompile.setText("Запакувати шрифт");
-        mni_fntCompile.setActionCommand("compileFont");
-        mni_fntCompile.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                onMenuClick(evt);
-            }
-        });
-        mn_edit.add(mni_fntCompile);
-        mn_edit.add(sep_three);
+    mni_fntCompile.setText("Запакувати шрифт");
+    mni_fntCompile.setActionCommand("compileFont");
+    mni_fntCompile.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        onMenuClick(evt);
+      }
+    });
+    mn_edit.add(mni_fntCompile);
+    mn_edit.add(sep_three);
 
-        mni_filterRows.setText("Ручне фільтрування рядків");
-        mni_filterRows.setActionCommand("filterRows");
-        mni_filterRows.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                onMenuClick(evt);
-            }
-        });
-        mn_edit.add(mni_filterRows);
+    mni_filterRows.setText("Ручне фільтрування рядків");
+    mni_filterRows.setActionCommand("filterRows");
+    mni_filterRows.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        onMenuClick(evt);
+      }
+    });
+    mn_edit.add(mni_filterRows);
 
-        mni_strictRules.setText("Строгі правила фільтрування");
-        mni_strictRules.setActionCommand("strictRules");
-        mni_strictRules.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                onMenuClick(evt);
-            }
-        });
-        mn_edit.add(mni_strictRules);
+    mni_strictRules.setText("Строгі правила фільтрування");
+    mni_strictRules.setActionCommand("strictRules");
+    mni_strictRules.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        onMenuClick(evt);
+      }
+    });
+    mn_edit.add(mni_strictRules);
 
-        mnb_main.add(mn_edit);
+    mnb_main.add(mn_edit);
 
-        mn_info.setText("Інфо");
+    mn_info.setText("Інфо");
 
-        mni_about.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK));
-        mni_about.setText("Про програму");
-        mni_about.setActionCommand("info");
-        mni_about.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                onMenuClick(evt);
-            }
-        });
-        mn_info.add(mni_about);
+    mni_about.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK));
+    mni_about.setText("Про програму");
+    mni_about.setActionCommand("info");
+    mni_about.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent evt) {
+        onMenuClick(evt);
+      }
+    });
+    mn_info.add(mni_about);
 
-        mnb_main.add(mn_info);
+    mnb_main.add(mn_info);
 
-        setJMenuBar(mnb_main);
+    setJMenuBar(mnb_main);
 
-        GroupLayout layout = new GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                    .addComponent(sp_table, GroupLayout.DEFAULT_SIZE, 588, Short.MAX_VALUE)
-                    .addComponent(pnl_footer, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
-        );
-        layout.setVerticalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(sp_table, GroupLayout.DEFAULT_SIZE, 333, Short.MAX_VALUE)
-                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(pnl_footer, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
+    GroupLayout layout = new GroupLayout(getContentPane());
+    getContentPane().setLayout(layout);
+    layout.setHorizontalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+      .addGroup(layout.createSequentialGroup()
+        .addContainerGap()
+        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+          .addComponent(sp_table, GroupLayout.DEFAULT_SIZE, 588, Short.MAX_VALUE)
+          .addComponent(pnl_footer, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        .addContainerGap())
+    );
+    layout.setVerticalGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+      .addGroup(layout.createSequentialGroup()
+        .addContainerGap()
+        .addComponent(sp_table, GroupLayout.DEFAULT_SIZE, 333, Short.MAX_VALUE)
+        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+        .addComponent(pnl_footer, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+        .addContainerGap())
+    );
 
-        pack();
-        setLocationRelativeTo(null);
-    }// </editor-fold>//GEN-END:initComponents
+    pack();
+    setLocationRelativeTo(null);
+  }// </editor-fold>//GEN-END:initComponents
 
 // ============================================================================
 /// Прослуховування пунктів меню програми
 
-    private void onMenuClick(ActionEvent evt) {//GEN-FIRST:event_onMenuClick
+  private void onMenuClick(ActionEvent evt) {//GEN-FIRST:event_onMenuClick
 
     switch (evt.getActionCommand()) {
 
-        case "open" -> showOpenDialog();
-        case "save" -> showSaveDialog();
-        case "find" -> showSearchDialog();
-        case "exit" -> showExitDialog();
-        case "info" -> showInfoDialog();
+      case "open" -> showOpenDialog();
+      case "save" -> showSaveDialog();
+      case "find" -> showSearchDialog();
+      case "exit" -> showExitDialog();
+      case "info" -> showInfoDialog();
 
-        case "decompileFont" -> showDecompileFontDialog();
-        case "compileFont"   -> showCompileFontDialog();
-        
-        case "filterRows"  -> mni_filterRows.setFont(mni_filterRows.getFont()
-                                            .equals(strikeFont) ? null 
-                                                  : strikeFont);
-        case "strictRules" -> mni_strictRules.setFont(mni_strictRules.getFont()
-                                             .equals(strikeFont) ? null 
-                                                   : strikeFont);
+      case "decompileFont" -> showDecompileFontDialog();
+      case "compileFont"   -> showCompileFontDialog();
+
+      case "filterRows"  -> mni_filterRows.setFont(mni_filterRows.getFont()
+                                          .equals(strikeFont) ? null 
+                                                : strikeFont);
+      case "strictRules" -> mni_strictRules.setFont(mni_strictRules.getFont()
+                                           .equals(strikeFont) ? null 
+                                                 : strikeFont);
     }
-    }//GEN-LAST:event_onMenuClick
+  }//GEN-LAST:event_onMenuClick
 
 // ============================================================================
 /// Прослуховування закривання вікна
 
-    private void onWindowClose(WindowEvent evt) {//GEN-FIRST:event_onWindowClose
-        showExitDialog();
-    }//GEN-LAST:event_onWindowClose
+  private void onWindowClose(WindowEvent evt) {//GEN-FIRST:event_onWindowClose
+    showExitDialog();
+  }//GEN-LAST:event_onWindowClose
 
 // ============================================================================
 /// Прослуховування натискань у таблиці
 
-    private void onTableClick(MouseEvent evt) {//GEN-FIRST:event_onTableClick
+  private void onTableClick(MouseEvent evt) {//GEN-FIRST:event_onTableClick
     
     int selectedRow = tbl_main.getSelectedRow();
     
@@ -788,15 +789,15 @@ private void initAppIcons() {
     if (evt.getButton() == MouseEvent.BUTTON2 ||
        (evt.isControlDown() && evt.getButton() == MouseEvent.BUTTON3)) {
        
-        String msg = "Оригінальний текст:%n\"%s\"%n%n" +
-                     "Розшифрований текст:%n\"%s\"%n%n" +
-                     "Новий текст:%n\"%s\"";
+      String msg = "Оригінальний текст:%n\"%s\"%n%n" +
+                   "Розшифрований текст:%n\"%s\"%n%n" +
+                   "Новий текст:%n\"%s\"";
 
-        String orgText = new String(block.getRawData());
-        String decText = CodeTable.decodeText(block.getRawData());
-        String newText = (String) tbl_main.getValueAt(selectedRow, 2);
-        
-        showMessageDialog(this, msg.formatted(orgText, decText, newText));
+      String orgText = new String(block.getRawData());
+      String decText = CodeTable.decodeText(block.getRawData());
+      String newText = (String) tbl_main.getValueAt(selectedRow, 2);
+
+      showMessageDialog(this, msg.formatted(orgText, decText, newText));
         
     }
     
@@ -805,47 +806,46 @@ private void initAppIcons() {
     else if (evt.getButton() == MouseEvent.BUTTON3 &&
              evt.getClickCount() >= 3) {
         
-        int length = block.getRawData().length;
-        String stat = length + "/" + length;
-        String decodedText = CodeTable.decodeText(block.getRawData());    
+      int length = block.getRawData().length;
+      String stat = length + "/" + length;
+      String decodedText = CodeTable.decodeText(block.getRawData());    
 
-        reactOnChange = false;
-        tbl_main.repaint();
-        tbl_main.setValueAt(stat, selectedRow, 1);
-        tbl_main.setValueAt(decodedText, selectedRow, 2);
-        editedList.remove(Integer.valueOf(selectedRow));
-        reactOnChange = true;
+      reactOnChange = false;
+      tbl_main.repaint();
+      tbl_main.setValueAt(stat, selectedRow, 1);
+      tbl_main.setValueAt(decodedText, selectedRow, 2);
+      editedList.remove(Integer.valueOf(selectedRow));
+      reactOnChange = true;
     
     }
-        
-    }//GEN-LAST:event_onTableClick
+  }//GEN-LAST:event_onTableClick
 
 // ============================================================================
 /// Список усіх об'явлених змінних
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private JLabel lbl_colCount;
-    private JLabel lbl_rowCount;
-    private JMenu mn_edit;
-    private JMenu mn_file;
-    private JMenu mn_info;
-    private JMenuBar mnb_main;
-    private JMenuItem mni_about;
-    private JMenuItem mni_exit;
-    private JMenuItem mni_filterRows;
-    private JMenuItem mni_find;
-    private JMenuItem mni_fntCompile;
-    private JMenuItem mni_fntDecompile;
-    private JMenuItem mni_open;
-    private JMenuItem mni_save;
-    private JMenuItem mni_strictRules;
-    private JPanel pnl_footer;
-    private JPopupMenu.Separator sep_one;
-    private JPopupMenu.Separator sep_three;
-    private JPopupMenu.Separator sep_two;
-    private JScrollPane sp_table;
-    public JTable tbl_main;
-    // End of variables declaration//GEN-END:variables
+  // Variables declaration - do not modify//GEN-BEGIN:variables
+  private JLabel lbl_colCount;
+  private JLabel lbl_rowCount;
+  private JMenu mn_edit;
+  private JMenu mn_file;
+  private JMenu mn_info;
+  private JMenuBar mnb_main;
+  private JMenuItem mni_about;
+  private JMenuItem mni_exit;
+  private JMenuItem mni_filterRows;
+  private JMenuItem mni_find;
+  private JMenuItem mni_fntCompile;
+  private JMenuItem mni_fntDecompile;
+  private JMenuItem mni_open;
+  private JMenuItem mni_save;
+  private JMenuItem mni_strictRules;
+  private JPanel pnl_footer;
+  private JPopupMenu.Separator sep_one;
+  private JPopupMenu.Separator sep_three;
+  private JPopupMenu.Separator sep_two;
+  private JScrollPane sp_table;
+  public JTable tbl_main;
+  // End of variables declaration//GEN-END:variables
 
 // Кінець класу TToolxApoc ====================================================
 

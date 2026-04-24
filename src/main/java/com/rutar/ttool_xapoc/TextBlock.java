@@ -16,8 +16,8 @@ private final byte[] rawData;
 /// @param rawData масив "сирих" даних
 
 public TextBlock (int position, byte[] rawData)
-    { this.position = position;
-      this.rawData  = rawData; }
+  { this.position = position;
+    this.rawData  = rawData; }
 
 // ============================================================================
 /// Повертає позицію текстового блоку

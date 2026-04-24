@@ -49,8 +49,8 @@ Component component = super.getTableCellRendererComponent(table, value,
                                                           hasFocus, row, col);
 
 if (defaultColor == null)
-    { defaultColor = component.getForeground();
-      searchColor = UIManager.getColor("Component.accentColor"); }
+  { defaultColor = component.getForeground();
+    searchColor = UIManager.getColor("Component.accentColor"); }
 
 // ............................................................................
 
@@ -73,34 +73,34 @@ if (fileExt.toLowerCase().equals("exe")) {
 
 switch (col) {
 
-    case 0 -> // колір тексту першого стовбця
-        { component.setForeground(editedList.contains(row) ? infoColor :
-                                                             Color.GRAY); }
-        
-    case 1 -> // колір тексту другого стовбця
-        { if (!editedList.contains(row))
-              { component.setForeground(defaultColor); }
-          else
-              { String newValue = (String) table.getValueAt(row, 2);
-                int oldValue = textBlocks.get(row).getRawData().length;
+  case 0 -> // колір тексту першого стовбця
+    { component.setForeground(editedList.contains(row) ? infoColor :
+                                                         Color.GRAY); }
+  
+  case 1 -> // колір тексту другого стовбця
+    { if (!editedList.contains(row))
+        { component.setForeground(defaultColor); }
+      else
+        { String newValue = (String) table.getValueAt(row, 2);
+          int oldValue = textBlocks.get(row).getRawData().length;
 
-                int delta = newValue.length() - oldValue;
+          int delta = newValue.length() - oldValue;
 
-                if (delta == 0)     
-                    { component.setForeground(okColor); }
-                else if (delta > 0)
-                    { component.setForeground(errorColor);}
-                else if (delta < 0)
-                    { component.setForeground(warningColor); } } }
+          if (delta == 0)     
+            { component.setForeground(okColor); }
+          else if (delta > 0)
+            { component.setForeground(errorColor); }
+          else if (delta < 0)
+            { component.setForeground(warningColor); } } }
 
-    default -> { component.setForeground(defaultColor); } } }
+  default -> { component.setForeground(defaultColor); } } }
 
 // Подання даних при відкриванні *.mt файлу
 else {
-    
-    if (col < 1)
-         { component.setForeground(Color.GRAY);   }
-    else { component.setForeground(defaultColor); }
+  
+  if (col < 1)
+       { component.setForeground(Color.GRAY);   }
+  else { component.setForeground(defaultColor); }
     
 }
 }
@@ -108,8 +108,8 @@ else {
 // ============================================================================
 
 public static void setSearchedCell (int searchedCol, int searchedRow)
-    { CellRender.searchedCol = searchedCol;
-      CellRender.searchedRow = searchedRow; }
+  { CellRender.searchedCol = searchedCol;
+    CellRender.searchedRow = searchedRow; }
 
 // Кінець класу CellRender ====================================================
 

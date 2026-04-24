@@ -25,16 +25,16 @@ if (allRanges.equals("-")) { includeAll = true;
 
 for (String range : allRanges.split(",")) {
     
-    if (range.contains(".."))
-        { String[] split = range.split("\\.\\.");
-          int min = Integer.parseInt(split[0]);
-          int max = Integer.parseInt(split[1]);
-          ranges.add(new SimpleRange(min, max)); }
+  if (range.contains(".."))
+    { String[] split = range.split("\\.\\.");
+      int min = Integer.parseInt(split[0]);
+      int max = Integer.parseInt(split[1]);
+      ranges.add(new SimpleRange(min, max)); }
     
-    else
-        { int value = Integer.parseInt(range);
-          ranges.add(new SimpleRange(value, value)); }
-    
+  else
+    { int value = Integer.parseInt(range);
+      ranges.add(new SimpleRange(value, value)); }
+
 }
 }
 
@@ -46,11 +46,10 @@ for (String range : allRanges.split(",")) {
 public boolean contains (int value) {
     
     if (includeAll) { return true; }
-    
-    for (SimpleRange range : ranges) {
-        if (range.checkValue(value)) { return true; }
-    }
-    
+
+    for (SimpleRange range : ranges)
+      { if (range.checkValue(value)) { return true; } }
+
     return false;
 }
 
@@ -62,15 +61,14 @@ public boolean contains (int value) {
 public String toString() {
     
     if (includeAll) { return "-";}
-    
+
     StringBuilder builder = new StringBuilder();
-    for (SimpleRange range : ranges) {
-        builder.append(range.toString());
-        builder.append(",");
-    }
-    
+    for (SimpleRange range : ranges)
+      { builder.append(range.toString());
+        builder.append(","); }
+
     builder.deleteCharAt(builder.lastIndexOf(","));
-    
+
     return builder.toString();
 }
 
@@ -96,20 +94,17 @@ public SimpleRange (int min, int max) { this.min = min;
 /// @param value значення для перевірки
 /// @return якщо true - задане значення входить в діапазон
 
-private boolean checkValue (int value) {
-    return value >= min && value <= max;
-}
+private boolean checkValue (int value)
+  { return value >= min && value <= max; }
 
 // ============================================================================
 /// Повертає текстове представлення числового діапазону
 /// @return текстове представлення числового діапазону
 
 @Override
-public String toString() {
-
-    if (min == max) { return String.valueOf(min); }
-    else            { return "" + min + ".." + max; }
-}
+public String toString()
+  { if (min == max) { return String.valueOf(min); }
+    else            { return "" + min + ".." + max; } }
 
 // Кінець класу SimpleRange ===================================================
 

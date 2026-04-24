@@ -62,7 +62,6 @@ private void processBlock (byte[] rawData) {
     
     // Знаходження "суфікса" рядка
     ender = Arrays.copyOfRange(rawData, position, rawData.length);
-    
 }
 
 // ============================================================================
@@ -76,7 +75,7 @@ public String getTitle() { return CodeTable.decodeText(title); }
 /// @param title новий заголовок блоку НЛОпедії
 
 public void setTitle (String title)
-    { this.title = CodeTable.encodeText(title); }
+  { this.title = CodeTable.encodeText(title); }
 
 // ============================================================================
 /// Отримання опису блоку НЛОпедії
@@ -89,7 +88,7 @@ public String getDescription() { return CodeTable.decodeText(description); }
 /// @param description новий опис блоку НЛОпедії
 
 public void setDescription (String description)
-    { this.description = CodeTable.encodeText(description); }
+  { this.description = CodeTable.encodeText(description); }
 
 // ============================================================================
 /// Отримання мисиву "сирих" даних
@@ -98,15 +97,14 @@ public void setDescription (String description)
 public byte[] getRawData() {
     
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream())
-        { baos.write(starter);
-          baos.write(title);
-          baos.write(separator);
-          baos.write(description);
-          baos.write(ender);
-          return baos.toByteArray(); }
+      { baos.write(starter);
+        baos.write(title);
+        baos.write(separator);
+        baos.write(description);
+        baos.write(ender);
+        return baos.toByteArray(); }
     
-    catch (Exception e) { return null; }
-
+    catch (Exception _) { return null; }
 }
 
 // ============================================================================
@@ -117,13 +115,12 @@ private int findPosition (int start, byte[] bytesToFind, byte[] rawBytes) {
     boolean find;
     
     for (int z = start; z < rawBytes.length - bytesToFind.length; z++)
-        { find = true;
-          for (int q = 0; q < bytesToFind.length; q++)
-              { if (rawBytes[z + q] != bytesToFind[q]) { find = false; } }
-          if (find) { return z + bytesToFind.length; } }
+      { find = true;
+        for (int q = 0; q < bytesToFind.length; q++)
+          { if (rawBytes[z + q] != bytesToFind[q]) { find = false; } }
+        if (find) { return z + bytesToFind.length; } }
     
     return -1;
-
 }
 
 // Кнець класу UFOPediaBlock ==================================================

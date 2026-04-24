@@ -53,24 +53,24 @@ while (buffer.remaining() >= 4) { indexes.add(buffer.getInt()); }
 
 // Обробка блоків НЛОпедії в циклі
 for (int z = 0; z < indexes.size()-1; z++)
-    { int from = indexes.get(z);
-      int to   = indexes.get(z + 1);
-      var block = new UFOPediaBlock(Arrays.copyOfRange(mainBytes, from, to));
-      ufopediaBlocks.add(block); }
+  { int from = indexes.get(z);
+    int to   = indexes.get(z + 1);
+    var block = new UFOPediaBlock(Arrays.copyOfRange(mainBytes, from, to));
+    ufopediaBlocks.add(block); }
 
 ArrayList<String> row = new ArrayList<>();
 
 // Обробка оброблених блоків НЛОпедії в циклі
 for (int z = 0; z < ufopediaBlocks.size(); z++)
-    { // Отримання блоку даних
-      var block = ufopediaBlocks.get(z);
-      // Парсинг блоку даних
-      row.clear();
-      row.add(String.valueOf(z + 1));
-      row.add(block.getTitle());
-      row.add(block.getDescription());
-      // Додавання даних у таблицю
-      tModel.addRow(row.toArray(String[]::new)); }
+  { // Отримання блоку даних
+    var block = ufopediaBlocks.get(z);
+    // Парсинг блоку даних
+    row.clear();
+    row.add(String.valueOf(z + 1));
+    row.add(block.getTitle());
+    row.add(block.getDescription());
+    // Додавання даних у таблицю
+    tModel.addRow(row.toArray(String[]::new)); }
 
 }
 
@@ -103,19 +103,19 @@ UFOPediaBlock block;   // блок НЛОпедії
 // Обробка текстових блоків у циклі
 for (int z = 0; z < ufopediaBlocks.size(); z++) {
     
-    block = ufopediaBlocks.get(z);
-    tmp = (String) table.getValueAt(z, 1);
-    tmp = Utils.replaceUnusedChars(tmp);
-    block.setTitle(tmp);
-    tmp = (String) table.getValueAt(z, 2);
-    tmp = Utils.replaceUnusedChars(tmp);
-    block.setDescription(tmp);
+  block = ufopediaBlocks.get(z);
+  tmp = (String) table.getValueAt(z, 1);
+  tmp = Utils.replaceUnusedChars(tmp);
+  block.setTitle(tmp);
+  tmp = (String) table.getValueAt(z, 2);
+  tmp = Utils.replaceUnusedChars(tmp);
+  block.setDescription(tmp);
     
-    data = block.getRawData();
-    pos += data.length;
-    
-    pediaF.write(data);
-    buffer.putInt(pos);
+  data = block.getRawData();
+  pos += data.length;
+
+  pediaF.write(data);
+  buffer.putInt(pos);
     
 }
 

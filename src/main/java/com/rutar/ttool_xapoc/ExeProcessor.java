@@ -26,20 +26,20 @@ private static byte[] allBytes;                            // усі зчита�
 // необхідні для фільтрування недопустимих текстових блоків
 
 private final String ufo2p =
-    "1346004..1353019,1353324..1360206,1360742..1368755," +
-    "1368895..1376455,1376755..1392187,1392289..1396269";
+  "1346004..1353019,1353324..1360206,1360742..1368755," +
+  "1368895..1376455,1376755..1392187,1392289..1396269";
 
 private final String ufo2p4 =
-    "1349588..1356603,1356908..1363790,1364326..1380039," +
-    "1380339..1394373,1394509..1395771,1395873..1399853";
+  "1349588..1356603,1356908..1363790,1364326..1380039," +
+  "1380339..1394373,1394509..1395771,1395873..1399853";
 
 private final String tacp =
-    "1254172..1254400,3005388..3010255," +
-    "3010307..3015444,3015521..3021497,3023446..3086216";
+  "1254172..1254400,3005388..3010255," +
+  "3010307..3015444,3015521..3021497,3023446..3086216";
 
 private final String tacp4 =
-    "1245468..1245696,2996684..3001551," +
-    "3001603..3002764,3002912..3012793,3014742..3077512";
+  "1245468..1245696,2996684..3001551," +
+  "3001603..3002764,3002912..3012793,3014742..3077512";
 
 // ============================================================================
 /// Читання "сирих" байт *.exe файлу
@@ -66,11 +66,11 @@ allBytes = Files.readAllBytes(inputFile.toPath());
 
 // Ручне задавання діапазонів, у межах яких є дані для обробки
 switch (inputFile.getName())
-    { case "UFO2P.EXE"  -> { range = new Range(ufo2p);  }
-      case "UFO2P4.EXE" -> { range = new Range(ufo2p4); }
-      case "TACP.EXE"   -> { range = new Range(tacp);   }
-      case "TACP4.EXE"  -> { range = new Range(tacp4);  }
-      default           -> { throw new IOException(); } }
+  { case "UFO2P.EXE"  -> { range = new Range(ufo2p);  }
+    case "UFO2P4.EXE" -> { range = new Range(ufo2p4); }
+    case "TACP.EXE"   -> { range = new Range(tacp);   }
+    case "TACP4.EXE"  -> { range = new Range(tacp4);  }
+    default           -> { throw new IOException(); } }
 
 // Якщо true - використовувати діапазони для обробки
 if (!filterRows) { range = new Range("-"); }
@@ -80,33 +80,32 @@ if (!filterRows) { range = new Range("-"); }
 
 for (int z = 0; z < allBytes.length; z++) {
 
-    // Пропуск даних поза робочим діапазоном
-    if (!range.contains(z)) { resetExeData();
-                              continue; }
-    
-    // Виявлено потенційний кінець текстового рядка
-    if (allBytes[z] == 0) {
-        // Отримання байтового масиву
-        byte[] bytes = baos.toByteArray();
-        // Перевірка коректності обробленого тексту
-        if (bytes.length < 2 || (strictRules &&
-           !isValidText(CodeTable.decodeText(bytes)))) { resetExeData();
-                                                         continue; }
-        // Додавання нового текстового блоку до загального масиву
-        textBlocks.add(new TextBlock(pos, bytes));
-        // Очищення даних
-        resetExeData();
-    }
-    
-    // Виявлено допустимий символ
-    else if (CodeTable.isValidByte(allBytes[z])) {
-        // Якщо позиція обробки не задана - задаємо її
-        if (pos == -1) { pos = z; }
-        // Запис допустимого символу в буфер
-        baos.write(allBytes[z]); }
-    
-    // Виявлено недопустимий символ
-    else { resetExeData(); }
+  // Пропуск даних поза робочим діапазоном
+  if (!range.contains(z)) { resetExeData();
+                            continue; }
+  
+  // Виявлено потенційний кінець текстового рядка
+  if (allBytes[z] == 0) {
+    // Отримання байтового масиву
+    byte[] bytes = baos.toByteArray();
+    // Перевірка коректності обробленого тексту
+    if (bytes.length < 2 || (strictRules &&
+       !isValidText(CodeTable.decodeText(bytes)))) { resetExeData();
+                                                     continue; }
+    // Додавання нового текстового блоку до загального масиву
+    textBlocks.add(new TextBlock(pos, bytes));
+    // Очищення даних
+    resetExeData(); }
+  
+  // Виявлено допустимий символ
+  else if (CodeTable.isValidByte(allBytes[z])) {
+    // Якщо позиція обробки не задана - задаємо її
+    if (pos == -1) { pos = z; }
+    // Запис допустимого символу в буфер
+    baos.write(allBytes[z]); }
+  
+  // Виявлено недопустимий символ
+  else { resetExeData(); }
 
 }
 
@@ -118,12 +117,12 @@ String tmp;
 ArrayList<String> row = new ArrayList<>();
 
 for (TextBlock tBlock : textBlocks)
-    { tmp = CodeTable.decodeText(tBlock.getRawData());
-      row.clear();
-      row.add(String.valueOf(++id));
-      row.add(tmp.length() + "/" + tBlock.getRawData().length);
-      row.add(tmp);
-      tModel.addRow(row.toArray(String[]::new)); }
+  { tmp = CodeTable.decodeText(tBlock.getRawData());
+    row.clear();
+    row.add(String.valueOf(++id));
+    row.add(tmp.length() + "/" + tBlock.getRawData().length);
+    row.add(tmp);
+    tModel.addRow(row.toArray(String[]::new)); }
 
 }
 
@@ -140,30 +139,30 @@ String tmp; // допоміжна змінна
 // Обробка всіх редагованих текстових блоків
 for (Integer edited : editedList) {
 
-    TextBlock block = textBlocks.get(edited);
-    int blockSize = block.getRawData().length;
-    tmp = (String) table.getValueAt(edited, 2);
-    tmp = Utils.replaceUnusedChars(tmp);
-    byte[] bytes = new byte[blockSize];
-    byte[] encoded = CodeTable.encodeText(tmp);
+  TextBlock block = textBlocks.get(edited);
+  int blockSize = block.getRawData().length;
+  tmp = (String) table.getValueAt(edited, 2);
+  tmp = Utils.replaceUnusedChars(tmp);
+  byte[] bytes = new byte[blockSize];
+  byte[] encoded = CodeTable.encodeText(tmp);
     
-    // Якщо довжини старого і нового текстів співпадають - все ок
-    if (encoded.length == bytes.length) { bytes = encoded; }
+  // Якщо довжини старого і нового текстів співпадають - все ок
+  if (encoded.length == bytes.length) { bytes = encoded; }
+
+  // Якщо довжини не співпадають - заповнюємо вільне місце пробілами
+  else { for (int z = 0; z < bytes.length; z++)
+           { bytes[z] = z < encoded.length ? encoded[z] : 0x20; }
+         // Оновлення дних текстового блоку
+         textBlocks.set(edited, new TextBlock(block.getPosition(), bytes)); }
     
-    // Якщо довжини не співпадають - заповнюємо вільне місце пробілами
-    else { for (int z = 0; z < bytes.length; z++)
-               { bytes[z] = z < encoded.length ? encoded[z] : 0x20; }
-           // Оновлення дних текстового блоку
-           textBlocks.set(edited, new TextBlock(block.getPosition(), bytes)); }
-    
-    // Заміна оригінальних байт на оброблені
-    System.arraycopy(bytes, 0, allBytes, block.getPosition(), bytes.length);
+  // Заміна оригінальних байт на оброблені
+  System.arraycopy(bytes, 0, allBytes, block.getPosition(), bytes.length);
     
 }
 
 // Запис результату в файл
 try (FileOutputStream fos = new FileOutputStream(outputFile))
-    { fos.write(allBytes); }
+  { fos.write(allBytes); }
 
 }
 
@@ -210,10 +209,10 @@ private boolean isVowelLetter (char c) {
 /// Скинання всіх лічильників
 
 private void resetExeData()
-    { // Очищення буферу
-      baos.reset();
-      // Скидання позиції обробки
-      pos = -1; }
+  { // Очищення буферу
+    baos.reset();
+    // Скидання позиції обробки
+    pos = -1; }
 
 // Кінець класу ExeProcessor ==================================================
 

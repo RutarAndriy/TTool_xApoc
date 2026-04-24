@@ -25,9 +25,9 @@ static { initCodeTable(); }
 /// @return перетворений текст
 
 public static String decodeText (byte[] encodedText)
-    { StringBuilder builder = new StringBuilder();
-      for (byte b : encodedText) { builder.append(decodeChar(b)); }
-      return builder.toString(); }
+  { StringBuilder builder = new StringBuilder();
+    for (byte b : encodedText) { builder.append(decodeChar(b)); }
+    return builder.toString(); }
 
 // ============================================================================
 /// Перетворення типу byte у тип char
@@ -35,8 +35,8 @@ public static String decodeText (byte[] encodedText)
 /// @return результат перетворення
 
 public static char decodeChar (byte key)
-    { Optional<Character> value = Optional.of(codes.get(key));
-      return value.orElseThrow(); }
+  { Optional<Character> value = Optional.of(codes.get(key));
+    return value.orElseThrow(); }
 
 // ============================================================================
 /// Перетворення текстового рядка у масив байт
@@ -44,9 +44,9 @@ public static char decodeChar (byte key)
 /// @return перетворений масив байт
 
 public static byte[] encodeText (String decodedText)
-    { ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      for (char c : decodedText.toCharArray()) { baos.write(encodeChar(c)); }
-      return baos.toByteArray(); }
+  { ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    for (char c : decodedText.toCharArray()) { baos.write(encodeChar(c)); }
+    return baos.toByteArray(); }
 
 // ============================================================================
 /// Перетворення типу char у тип byte
@@ -54,10 +54,10 @@ public static byte[] encodeText (String decodedText)
 /// @return результат перетворення
 
 public static byte encodeChar (char value)
-    { for (var entry : codes.entrySet())
-          { if (entry.getValue().equals(value)) { return entry.getKey(); } }
-      // Якщо ключа не існує - повертаємо код символу ?
-      return 0x3f; }
+  { for (var entry : codes.entrySet())
+      { if (entry.getValue().equals(value)) { return entry.getKey(); } }
+    // Якщо ключа не існує - повертаємо код символу ?
+    return 0x3f; }
 
 // ============================================================================
 /// Перевірка, чи заданий байт є допустимим
@@ -65,7 +65,7 @@ public static byte encodeChar (char value)
 /// @return якщо true - байт є допустимим
 
 public static boolean isValidByte (byte key)
-    { return codes.containsKey(key); }
+  { return codes.containsKey(key); }
 
 // ============================================================================
 /// Ініціалізація таблиці кодування символів
@@ -78,15 +78,15 @@ try (var is  = CodeTable.class.getResourceAsStream("others/charCodes.txt");
 
 String line;
 while ((line = br.readLine()) != null)
-    { // Зчитування наступного рядка
-      String[] keyAndValue = line.split("-");
-      String key = keyAndValue[0];
-      String value = key.equals("2D") ? "-" : keyAndValue[1];
-      // Перетворення даних
-      byte bKey = (byte) Integer.parseInt(key, 16);
-      char cValue = value.charAt(0);
-      // Додавання даних у таблицю
-      codes.put(bKey, cValue); } }
+  { // Зчитування наступного рядка
+    String[] keyAndValue = line.split("-");
+    String key = keyAndValue[0];
+    String value = key.equals("2D") ? "-" : keyAndValue[1];
+    // Перетворення даних
+    byte bKey = (byte) Integer.parseInt(key, 16);
+    char cValue = value.charAt(0);
+    // Додавання даних у таблицю
+    codes.put(bKey, cValue); } }
 
 catch (Exception e) { IO.println("Init code table error!"); }
 
